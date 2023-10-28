@@ -22,6 +22,7 @@ var (
 var versionCommand = &cli.Command{
 	Action:    printVersion,
 	Name:      "version",
+	Aliases:   []string{"v"},
 	Usage:     "Print version numbers",
 	ArgsUsage: " ",
 	Description: `

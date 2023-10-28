@@ -10,12 +10,12 @@ import (
 func NewPebble(datadir string) (*pebble.DB, error) {
 
 	var (
-		cache    uint64 = 2048
+		cache    uint64 = 1024
 		handlers        = 2048
 		// The max memtable size is limited by the uint32 offsets stored in
 		// internal/arenaskl.node, DeferredBatchOp, and flushableBatchEntry.
 		// Taken from https://github.com/cockroachdb/pebble/blob/master/open.go#L38
-		maxMemTableSize uint64 = 4<<30 - 1 // Capped by 4 GB
+		maxMemTableSize uint64 = 2<<30 - 1 // Capped by 4 GB
 		memTableLimit          = 2
 	)
 
@@ -53,6 +53,7 @@ func NewPebble(datadir string) (*pebble.DB, error) {
 			{TargetFileSize: 2 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
 		},
 		ReadOnly: false,
+		Logger:   nil,
 	}
 	// Disable seek compaction explicitly. Check https://github.com/ethereum/go-ethereum/pull/20130
 	// for more details.

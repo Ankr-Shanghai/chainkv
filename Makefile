@@ -1,9 +1,9 @@
 GIT_COMMIT=$(shell git rev-parse HEAD)
-GIT_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d'
+GIT_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d')
 
 .PHONY: proto
 proto:
-	protoc -I client/proto/ client/proto/*.proto --go_out=.
+	protoc -I client/pb/ client/pb/*.proto --go_out=.
 	
 .PHONY: build
 build:

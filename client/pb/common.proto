@@ -1,8 +1,13 @@
 syntax = "proto3";
 
-package proto;
+package pb;
 
-option go_package = "client/proto";
+option go_package = "client/pb";
+
+
+message NotSupport {
+  int32 code = 1;
+}
 
 // Get action
 message GetRequest {

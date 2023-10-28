@@ -3,9 +3,13 @@ package main
 import (
 	"log/slog"
 	"os"
+	"runtime"
 
 	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/plugins/protobuf"
+	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/cockroachdb/pebble"
+	"google.golang.org/protobuf/proto"
 )
 
 type kvserver struct {
@@ -21,10 +25,13 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 			Level: slog.LevelInfo,
 		})),
 	}
-	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port))
+	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
+		gev.CustomProtocol(&protobuf.Protocol{}),
+		gev.NumLoops(runtime.NumCPU()))
 	if err != nil {
 		return nil, err
 	}
+
 	// open the database
 	db, err := NewPebble(datadir)
 	if err != nil {
@@ -51,7 +58,16 @@ func (s *kvserver) OnConnect(c *gev.Connection) {
 }
 
 func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
-	return data
+	name := ctx.(string)
+	s.log.Debug("OnMessage", "name", name, "data", data)
+	handler, ok := handleOpts[name]
+	if !ok {
+		rsp := &pb.NotSupport{Code: ErrCodeNotSupport}
+		out, _ = proto.Marshal(rsp)
+		return
+	}
+	out = handler(s, data)
+	return
 }
 
 func (s *kvserver) OnClose(c *gev.Connection) {

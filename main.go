@@ -31,7 +31,10 @@ func init() {
 		DataPath,
 	}
 
-	setHelpTemplate(app)
+	app.Commands = []*cli.Command{
+		versionCommand,
+	}
+
 }
 
 func kvact(ctx *cli.Context) error {
@@ -46,11 +49,14 @@ func kvact(ctx *cli.Context) error {
 	_, gs := grace.New(context.Background())
 
 	gs.Register(func() error {
+		srv.log.Info("chainkv service is stopping ...")
 		srv.Stop()
+		srv.log.Info("chainkv service stopped!")
 		return nil
 	})
 
 	gs.RegisterService("chainkv", func(c context.Context) error {
+		srv.log.Info("chainkv service start", "host", host, "port", port)
 		srv.Start()
 		return nil
 	})
@@ -58,27 +64,4 @@ func kvact(ctx *cli.Context) error {
 	gs.Wait()
 
 	return nil
-}
-
-func setHelpTemplate(app *cli.App) {
-	app.CustomAppHelpTemplate = `NAME:
-  {{.Name}} - {{.Usage}}
-USAGE:
-  {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
-  {{if len .Authors}}
-AUTHOR:
-  {{range .Authors}}{{ . }}{{end}}
-  {{end}}{{if .Commands}}
-COMMANDS:
- {{range .Commands}}{{if not .HideHelp}}   {{join .Names ","}}{{ "\t"}}{{.Usage}}{{ "\n" }}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
-GLOBAL OPTIONS:
-  {{range .VisibleFlags}}{{.}}
-  {{end}}{{end}}{{if .Copyright }}
-COPYRIGHT:
-  {{.Copyright}}
-  {{end}}{{if .Version}}
-VERSION:
-  {{.Version}}
-{{end}}
- `
 }
