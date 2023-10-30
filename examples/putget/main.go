@@ -1,77 +1,35 @@
 package main
 
 import (
-	"log"
-	"net"
+	"fmt"
 
-	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
-	"google.golang.org/protobuf/proto"
+	"github.com/Ankr-Shanghai/chainkv/client"
 )
 
 func main() {
-	conn, e := net.Dial("tcp", "localhost:4321")
-	if e != nil {
-		log.Fatal(e)
-	}
-	defer conn.Close()
+	client := client.NewClient("127.0.0.1:4321")
 
-	// put
+	// var puts = fmt.Sprintf(strings.Repeat("a", 1024*1024))
 
-	// req := &pb.PutRequest{
-	// 	Key:   []byte("key"),
-	// 	Value: []byte("vvvvvv"),
-	// }
+	// fmt.Printf("puts len: %d \n", len(puts))
 
-	// reqs, err := proto.Marshal(req)
+	// err := client.Put([]byte("key"), []byte(puts))
 	// if err != nil {
-	// 	log.Fatal("marshal", err)
+	// 	fmt.Println("write failed: ", err)
+	// 	return
 	// }
 
-	// buffer := protobuf.PackMessage("PutRequest", reqs)
-
-	// _, err = conn.Write(buffer)
-	// if err != nil {
-	// 	log.Fatal("write put", err)
-	// }
-
-	rspBuf := make([]byte, 1024)
-	// n, err := conn.Read(rspBuf)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// rsp := &pb.PutResponse{}
-	// err = proto.Unmarshal(rspBuf[:n], rsp)
-	// if err != nil {
-	// 	log.Fatal("putrsp um == ", err)
-	// }
-	// log.Printf("rsp: %+v", rsp)
-
-	// get
-
-	reqg := &pb.GetRequest{
-		Key: []byte("key"),
-	}
-	reqgs, err := proto.Marshal(reqg)
+	err := client.Delete([]byte("key"))
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("delete failed: ", err)
+		return
 	}
 
-	buffer := protobuf.PackMessage("GetRequest", reqgs)
-	_, err = conn.Write(buffer)
+	gets, err := client.Get([]byte("key"))
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("write get failed: ", err)
+		return
 	}
+	fmt.Printf("return len: %d \n", len(gets))
 
-	rspg := &pb.GetResponse{}
-	n, err := conn.Read(rspBuf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = proto.Unmarshal(rspBuf[:n], rspg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("rsp: %+v", rspg)
 }

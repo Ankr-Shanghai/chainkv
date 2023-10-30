@@ -6,8 +6,8 @@ import (
 	"runtime"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/plugins/protobuf"
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
+	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/cockroachdb/pebble"
 	"google.golang.org/protobuf/proto"
 )
@@ -26,7 +26,7 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 		})),
 	}
 	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
-		gev.CustomProtocol(&protobuf.Protocol{}),
+		gev.CustomProtocol(&Protocol{}),
 		gev.NumLoops(runtime.NumCPU()))
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (o
 	s.log.Debug("OnMessage", "name", name, "data", data)
 	handler, ok := handleOpts[name]
 	if !ok {
-		rsp := &pb.NotSupport{Code: ErrCodeNotSupport}
+		rsp := &pb.NotSupport{Code: retcode.ErrCodeNotSupport}
 		out, _ = proto.Marshal(rsp)
 		return
 	}

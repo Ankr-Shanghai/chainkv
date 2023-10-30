@@ -1,4 +1,4 @@
-package main
+package retcode
 
 const (
 	CodeOK = 6000 + iota
@@ -6,4 +6,5 @@ const (
 	ErrCodeNotSupport
 	ErrCodePut
 	ErrCodeGet
+	ErrCodeNotFound
 )

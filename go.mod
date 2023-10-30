@@ -4,14 +4,15 @@ go 1.21
 
 require (
 	github.com/Allenxuxu/gev v0.5.0
+	github.com/Allenxuxu/ringbuffer v0.0.11
 	github.com/cockroachdb/pebble v0.0.0-20231027194153-ed45a7767175
+	github.com/gobwas/pool v0.2.0
 	github.com/sunvim/utils v0.1.0
 	github.com/urfave/cli/v2 v2.25.7
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
-	github.com/Allenxuxu/ringbuffer v0.0.11 // indirect
 	github.com/Allenxuxu/toolkit v0.0.1 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/RussellLuo/timingwheel v0.0.0-20201029015908-64de9d088c74 // indirect
@@ -23,7 +24,6 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/getsentry/sentry-go v0.18.0 // indirect
-	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

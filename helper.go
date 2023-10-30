@@ -53,7 +53,6 @@ func NewPebble(datadir string) (*pebble.DB, error) {
 			{TargetFileSize: 2 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
 		},
 		ReadOnly: false,
-		Logger:   nil,
 	}
 	// Disable seek compaction explicitly. Check https://github.com/ethereum/go-ethereum/pull/20130
 	// for more details.
