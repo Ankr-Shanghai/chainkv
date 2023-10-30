@@ -31,7 +31,6 @@ func PutHandler(kv *kvserver, data []byte) interface{} {
 		rsp.Code = ErrCodeUnmarshal
 		goto END
 	}
-	kv.log.Info("PutHandler", "key", string(req.Key), "value", string(req.Value))
 
 	err = kv.db.Set(req.Key, req.Value, pebble.Sync)
 	if err != nil {
@@ -40,9 +39,7 @@ func PutHandler(kv *kvserver, data []byte) interface{} {
 	}
 
 END:
-	kv.log.Info("PutHandler", "rsp", rsp)
 	out, _ := proto.Marshal(rsp)
-	kv.log.Info("PutHandler", "out", out)
 	return out
 }
 
