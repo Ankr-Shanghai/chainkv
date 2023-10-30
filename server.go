@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
@@ -16,15 +17,28 @@ type kvserver struct {
 	server *gev.Server
 	db     *pebble.DB
 	log    *slog.Logger
+
+	lock      sync.Mutex
+	connTotal int
+
+	batchLock  sync.Mutex
+	batchIdx   uint32
+	batchCache map[uint32]*pebble.Batch
+
+	interLock sync.Mutex
+	interIdx  uint32
 }
 
 func NewServer(ip, port, datadir string) (*kvserver, error) {
+
 	var err error
 	s := &kvserver{
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
+		batchCache: make(map[uint32]*pebble.Batch),
 	}
+
 	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
 		gev.CustomProtocol(&Protocol{}),
 		gev.NumLoops(runtime.NumCPU()))
@@ -55,6 +69,10 @@ func (s *kvserver) Stop() {
 }
 
 func (s *kvserver) OnConnect(c *gev.Connection) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.connTotal++
+	s.log.Info("OnConnect", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
 }
 
 func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
@@ -62,7 +80,7 @@ func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (o
 	s.log.Debug("OnMessage", "name", name, "data", data)
 	handler, ok := handleOpts[name]
 	if !ok {
-		rsp := &pb.NotSupport{Code: retcode.ErrCodeNotSupport}
+		rsp := &pb.NotSupport{Code: retcode.ErrNotSupport}
 		out, _ = proto.Marshal(rsp)
 		return
 	}
@@ -71,4 +89,8 @@ func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (o
 }
 
 func (s *kvserver) OnClose(c *gev.Connection) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.connTotal++
+	s.log.Info("OnConnect", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
 }

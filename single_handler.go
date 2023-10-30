@@ -9,21 +9,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Handler func(kv *kvserver, data []byte) interface{}
-
-var (
-	handleOpts = map[string]Handler{
-		pb.ReqType_REQ_TYPE_PUT.String(): PutHandler,
-		pb.ReqType_REQ_TYPE_GET.String(): GetHandler,
-		pb.ReqType_REQ_TYPE_DEL.String(): DelHandler,
-		pb.ReqType_REQ_TYPE_HAS.String(): HasHandler,
-	}
-)
-
 func PutHandler(kv *kvserver, data []byte) interface{} {
 	var (
-		req = &pb.SigRequest{}
-		rsp = &pb.SigResponse{
+		req = &pb.Request{}
+		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -31,14 +20,14 @@ func PutHandler(kv *kvserver, data []byte) interface{} {
 
 	if err = proto.Unmarshal(data, req); err != nil {
 		kv.log.Error("PutHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrCodeUnmarshal
+		rsp.Code = retcode.ErrUnmarshal
 		goto END
 	}
 
 	err = kv.db.Set(req.Key, req.Val, pebble.Sync)
 	if err != nil {
 		kv.log.Error("PutHandler", "err", err)
-		rsp.Code = retcode.ErrCodePut
+		rsp.Code = retcode.ErrPut
 	}
 
 END:
@@ -48,8 +37,8 @@ END:
 
 func GetHandler(kv *kvserver, data []byte) interface{} {
 	var (
-		req = &pb.SigRequest{}
-		rsp = &pb.SigResponse{
+		req = &pb.Request{}
+		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
 		dat    []byte
@@ -59,17 +48,17 @@ func GetHandler(kv *kvserver, data []byte) interface{} {
 
 	if err = proto.Unmarshal(data, req); err != nil {
 		kv.log.Error("GetHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrCodeUnmarshal
+		rsp.Code = retcode.ErrUnmarshal
 		goto END
 	}
 
 	dat, closer, err = kv.db.Get(req.Key)
 	if err != nil {
 		if err == pebble.ErrNotFound {
-			rsp.Code = retcode.ErrCodeNotFound
+			rsp.Code = retcode.ErrNotFound
 		} else {
 			kv.log.Error("GetHandler", "err", err)
-			rsp.Code = retcode.ErrCodeGet
+			rsp.Code = retcode.ErrGet
 		}
 		goto END
 	}
@@ -84,8 +73,8 @@ END:
 
 func DelHandler(kv *kvserver, data []byte) interface{} {
 	var (
-		req = &pb.SigRequest{}
-		rsp = &pb.SigResponse{
+		req = &pb.Request{}
+		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -93,14 +82,14 @@ func DelHandler(kv *kvserver, data []byte) interface{} {
 
 	if err = proto.Unmarshal(data, req); err != nil {
 		kv.log.Error("DelHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrCodeUnmarshal
+		rsp.Code = retcode.ErrUnmarshal
 		goto END
 	}
 
 	err = kv.db.Delete(req.Key, pebble.NoSync)
 	if err != nil {
 		kv.log.Error("DelHandler", "err", err)
-		rsp.Code = retcode.ErrCodeGet
+		rsp.Code = retcode.ErrGet
 		goto END
 	}
 END:
@@ -110,8 +99,8 @@ END:
 
 func HasHandler(kv *kvserver, data []byte) interface{} {
 	var (
-		req = &pb.SigRequest{}
-		rsp = &pb.SigResponse{
+		req = &pb.Request{}
+		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
 		closer io.Closer
@@ -120,17 +109,17 @@ func HasHandler(kv *kvserver, data []byte) interface{} {
 
 	if err = proto.Unmarshal(data, req); err != nil {
 		kv.log.Error("HasHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrCodeUnmarshal
+		rsp.Code = retcode.ErrUnmarshal
 		goto END
 	}
 
 	_, closer, err = kv.db.Get(req.Key)
 	if err != nil {
 		if err == pebble.ErrNotFound {
-			rsp.Code = retcode.ErrCodeNotFound
+			rsp.Code = retcode.ErrNotFound
 		} else {
 			kv.log.Error("HasHandler", "err", err)
-			rsp.Code = retcode.ErrCodeGet
+			rsp.Code = retcode.ErrGet
 		}
 		goto END
 	}

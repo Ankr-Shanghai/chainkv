@@ -14,15 +14,23 @@ enum ReqType {
     REQ_TYPE_PUT = 1;
     REQ_TYPE_HAS = 2;
     REQ_TYPE_DEL = 3;
+    REQ_TYPE_BATCH_NEW = 4;
+    REQ_TYPE_BATCH_PUT = 5;
+    REQ_TYPE_BATCH_DEL = 6;
+    REQ_TYPE_BATCH_WRITE = 7;
+    REQ_TYPE_BATCH_RESET = 8;
+    REQ_TYPE_BATCH_CLOSE = 9;
 }
 
-message SigRequest {
+message Request {
     ReqType type = 1;
     bytes  key = 2;
     bytes  val = 3;
+    uint32 id = 4;
 }
 
-message SigResponse {
+message Response {
     int32 code = 1;
     bytes val = 2;
+    uint32 id = 3;
 }

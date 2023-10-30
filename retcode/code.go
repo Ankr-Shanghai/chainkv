@@ -2,9 +2,11 @@ package retcode
 
 const (
 	CodeOK = 6000 + iota
-	ErrCodeUnmarshal
-	ErrCodeNotSupport
-	ErrCodePut
-	ErrCodeGet
-	ErrCodeNotFound
+	ErrUnmarshal
+	ErrNotSupport
+	ErrPut
+	ErrGet
+	ErrNotFound
+	ErrBatchReset
+	ErrBatchWrite
 )

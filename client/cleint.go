@@ -7,9 +7,9 @@ import (
 	"net"
 	"os"
 
-	"github.com/Allenxuxu/gev/plugins/protobuf"
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/client/pool"
+	"github.com/Ankr-Shanghai/chainkv/plugins"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/gobwas/pool/pbytes"
 	"google.golang.org/protobuf/proto"
@@ -52,11 +52,11 @@ func (c *client) Close() error {
 
 func (c *client) Get(key []byte) ([]byte, error) {
 	var (
-		req = &pb.SigRequest{
+		req = &pb.Request{
 			Type: pb.ReqType_REQ_TYPE_GET,
 			Key:  key,
 		}
-		rsp = &pb.SigResponse{Code: retcode.CodeOK}
+		rsp = &pb.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -65,7 +65,7 @@ func (c *client) Get(key []byte) ([]byte, error) {
 		return nil, errors.New("get failed")
 	}
 
-	if rsp.Code == retcode.ErrCodeNotFound {
+	if rsp.Code == retcode.ErrNotFound {
 		return nil, ErrNotFound
 	}
 	return rsp.Val, nil
@@ -73,12 +73,12 @@ func (c *client) Get(key []byte) ([]byte, error) {
 
 func (c *client) Put(key, value []byte) error {
 	var (
-		req = &pb.SigRequest{
+		req = &pb.Request{
 			Type: pb.ReqType_REQ_TYPE_PUT,
 			Key:  key,
 			Val:  value,
 		}
-		rsp = &pb.SigResponse{Code: retcode.CodeOK}
+		rsp = &pb.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -92,11 +92,11 @@ func (c *client) Put(key, value []byte) error {
 
 func (c *client) Delete(key []byte) error {
 	var (
-		req = &pb.SigRequest{
+		req = &pb.Request{
 			Type: pb.ReqType_REQ_TYPE_DEL,
 			Key:  key,
 		}
-		rsp = &pb.SigResponse{Code: retcode.CodeOK}
+		rsp = &pb.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -109,11 +109,11 @@ func (c *client) Delete(key []byte) error {
 
 func (c *client) Has(key []byte) (bool, error) {
 	var (
-		req = &pb.SigRequest{
+		req = &pb.Request{
 			Type: pb.ReqType_REQ_TYPE_GET,
 			Key:  key,
 		}
-		rsp = &pb.SigResponse{Code: retcode.CodeOK}
+		rsp = &pb.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -122,13 +122,13 @@ func (c *client) Has(key []byte) (bool, error) {
 		return false, errors.New("get failed")
 	}
 
-	if rsp.Code == retcode.ErrCodeNotFound {
+	if rsp.Code == retcode.ErrNotFound {
 		return false, ErrNotFound
 	}
 	return true, nil
 }
 
-func (c *client) do(req *pb.SigRequest, rsp *pb.SigResponse) error {
+func (c *client) do(req *pb.Request, rsp *pb.Response) error {
 	conn, err := c.pool.Get()
 	if err != nil {
 		c.log.Error("Get connection failed", "err", err)
@@ -138,7 +138,7 @@ func (c *client) do(req *pb.SigRequest, rsp *pb.SigResponse) error {
 
 	reqs, _ := proto.Marshal(req)
 
-	ret := protobuf.PackMessage(req.Type.String(), reqs)
+	ret := plugins.PackMessage(req.Type.String(), reqs)
 	_, err = conn.Write(ret)
 	if err != nil {
 		c.log.Error("Write failed", "err", err)
