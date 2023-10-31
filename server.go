@@ -25,8 +25,9 @@ type kvserver struct {
 	batchIdx   uint32
 	batchCache map[uint32]*pebble.Batch
 
-	interLock sync.Mutex
-	interIdx  uint32
+	iterLock  sync.Mutex
+	iterIdx   uint32
+	iterCache map[uint32]*Iter
 }
 
 func NewServer(ip, port, datadir string) (*kvserver, error) {
@@ -37,6 +38,7 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 			Level: slog.LevelInfo,
 		})),
 		batchCache: make(map[uint32]*pebble.Batch),
+		iterCache:  make(map[uint32]*Iter),
 	}
 
 	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
@@ -61,10 +63,27 @@ func (s *kvserver) Start() {
 }
 
 func (s *kvserver) Stop() {
-	err := s.db.Close()
+	err := s.db.Flush()
+	if err != nil {
+		s.log.Error("kvserver flush memtable to stable storage", "err", err)
+	}
+	err = s.db.Close()
 	if err != nil {
 		s.log.Error("kvserver stop", "err", err)
 	}
+
+	s.batchLock.Lock()
+	for _, batch := range s.batchCache {
+		batch.Close()
+	}
+	s.batchLock.Unlock()
+
+	s.iterLock.Lock()
+	for _, iter := range s.iterCache {
+		iter.iter.Close()
+	}
+	s.iterLock.Unlock()
+
 	s.server.Stop()
 }
 
@@ -78,7 +97,7 @@ func (s *kvserver) OnConnect(c *gev.Connection) {
 func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	name := ctx.(string)
 	s.log.Debug("OnMessage", "name", name, "data", data)
-	handler, ok := handleOpts[name]
+	handler, ok := handleOps[name]
 	if !ok {
 		rsp := &pb.NotSupport{Code: retcode.ErrNotSupport}
 		out, _ = proto.Marshal(rsp)
@@ -91,6 +110,6 @@ func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (o
 func (s *kvserver) OnClose(c *gev.Connection) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.connTotal++
-	s.log.Info("OnConnect", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
+	s.connTotal--
+	s.log.Info("OnClose", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
 }

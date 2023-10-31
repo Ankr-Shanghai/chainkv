@@ -5,7 +5,7 @@ import "github.com/Ankr-Shanghai/chainkv/client/pb"
 type Handler func(kv *kvserver, data []byte) interface{}
 
 var (
-	handleOpts = map[string]Handler{
+	handleOps = map[string]Handler{
 		pb.ReqType_REQ_TYPE_PUT.String():         PutHandler,
 		pb.ReqType_REQ_TYPE_GET.String():         GetHandler,
 		pb.ReqType_REQ_TYPE_DEL.String():         DelHandler,
@@ -16,5 +16,11 @@ var (
 		pb.ReqType_REQ_TYPE_BATCH_WRITE.String(): BatchWriteHandler,
 		pb.ReqType_REQ_TYPE_BATCH_RESET.String(): BatchResetHandler,
 		pb.ReqType_REQ_TYPE_BATCH_CLOSE.String(): BatchCloseHandler,
+		pb.ReqType_REQ_TYPE_ITER_NEW.String():    NewIteratorHandler,
+		pb.ReqType_REQ_TYPE_ITER_NEXT.String():   IterNextHandler,
+		pb.ReqType_REQ_TYPE_ITER_KEY.String():    IterKeyHandler,
+		pb.ReqType_REQ_TYPE_ITER_VAL.String():    IterValHandler,
+		pb.ReqType_REQ_TYPE_ITER_ERROR.String():  IterErrorHandler,
+		pb.ReqType_REQ_TYPE_ITER_CLOSE.String():  IterCloseHandler,
 	}
 )

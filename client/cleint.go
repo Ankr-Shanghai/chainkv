@@ -3,9 +3,11 @@ package client
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
+	"sync"
 
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/client/pool"
@@ -20,33 +22,116 @@ type client struct {
 	pool   pool.Pool
 	log    *slog.Logger
 	buffer *pbytes.Pool
+
+	// batchMap is used to store the batch object
+	batchLock sync.Mutex
+	batchMap  map[uint32]*Batch
+
+	// itermap is used to store the iterator object
+	iterLock sync.Mutex
+	iterMap  map[uint32]*Iterator
 }
 
-func NewClient(src string) *client {
+type Option struct {
+	Host string
+	Port string
+	Size int // client pool size
+}
+
+func NewClient(opt *Option) (*client, error) {
+	src := fmt.Sprintf("%s:%s", opt.Host, opt.Port)
 	functory := func() (net.Conn, error) {
 		return net.Dial("tcp", src)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	p, err := pool.NewPool(30, 30, functory, nil)
+	p, err := pool.NewPool(opt.Size, opt.Size, functory, nil)
 	if err != nil {
 		logger.Error("NewClient", "err", err)
-		return nil
+		return nil, err
 	}
 
 	buffer := pbytes.New(128, 1024*1024*128)
 
 	return &client{
-		src:    src,
-		pool:   p,
-		log:    logger,
-		buffer: buffer,
+		src:      src,
+		pool:     p,
+		log:      logger,
+		buffer:   buffer,
+		batchMap: make(map[uint32]*Batch),
+	}, nil
+}
+
+func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
+	var (
+		req = &pb.Request{
+			Type: pb.ReqType_REQ_TYPE_ITER_NEW,
+			Key:  prefix,
+			Val:  start,
+		}
+		rsp = &pb.Response{Code: retcode.CodeOK}
+		err error
+	)
+
+	err = c.do(req, rsp)
+	if err != nil {
+		return nil, err
 	}
+
+	iter := &Iterator{
+		client: c,
+		idx:    rsp.Id,
+	}
+
+	return iter, nil
+}
+
+func (c *client) NewBatch() (*Batch, error) {
+
+	var (
+		req = &pb.Request{
+			Type: pb.ReqType_REQ_TYPE_BATCH_NEW,
+		}
+		rsp = &pb.Response{Code: retcode.CodeOK}
+		err error
+	)
+	err = c.do(req, rsp)
+	if err != nil {
+		return nil, ErrNewBatch
+	}
+	batch := &Batch{
+		client: c,
+		idx:    rsp.Id,
+		writes: make([]keyvalue, 0),
+	}
+
+	c.batchLock.Lock()
+	c.batchMap[rsp.Id] = batch
+	c.batchLock.Unlock()
+	c.log.Info("NewBatch", "idx", rsp.Id)
+	return batch, nil
 }
 
 func (c *client) Close() error {
+
+	// close all batch
+	c.batchLock.Lock()
+	for _, batch := range c.batchMap {
+		batch.Close()
+	}
+	c.batchLock.Unlock()
+
+	// close all iterator
+	c.iterLock.Lock()
+	for _, iter := range c.iterMap {
+		iter.Close()
+	}
+	c.iterLock.Unlock()
+
+	// must be close last
 	c.pool.Close()
+
 	return nil
 }
 

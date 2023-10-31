@@ -32,8 +32,6 @@ func BatchDel(kvs *kvserver, idx uint32, key []byte) {
 func BatchClose(kvs *kvserver, idx uint32) {
 	kvs.batchLock.Lock()
 	defer kvs.batchLock.Unlock()
-
-	kvs.batchCache[idx].Commit(pebble.Sync)
 	kvs.batchCache[idx].Close()
 	delete(kvs.batchCache, idx)
 }

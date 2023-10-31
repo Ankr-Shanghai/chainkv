@@ -107,7 +107,7 @@ func (c *channelPool) Get() (net.Conn, error) {
 		}
 
 		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-		conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+		conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
 		return c.wrapConn(conn), nil
 	default:
@@ -116,7 +116,7 @@ func (c *channelPool) Get() (net.Conn, error) {
 			return nil, err
 		}
 		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-		conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+		conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
 		return c.wrapConn(conn), nil
 	}

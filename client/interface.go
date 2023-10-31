@@ -5,4 +5,5 @@ type Client interface {
 	Put(key, value []byte) error
 	Close() error
 	Has(key []byte) (bool, error)
+	NewBatch() *Batch
 }
