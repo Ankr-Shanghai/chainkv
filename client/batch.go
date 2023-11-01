@@ -5,16 +5,16 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 )
 
-type keyvalue struct {
-	key    []byte
-	value  []byte
-	delete bool
+type KeyValue struct {
+	Key    []byte
+	Value  []byte
+	Delete bool
 }
 
 type Batch struct {
 	client *client
 	idx    uint32
-	Writes []keyvalue
+	Writes []KeyValue
 	size   int
 }
 
@@ -43,7 +43,7 @@ func (b *Batch) Close() error {
 
 // Put inserts the given value into the batch for later committing.
 func (b *Batch) Put(key, value []byte) error {
-	b.Writes = append(b.Writes, keyvalue{CopyBytes(key), CopyBytes(value), false})
+	b.Writes = append(b.Writes, KeyValue{CopyBytes(key), CopyBytes(value), false})
 	b.size += len(key) + len(value)
 	var (
 		req = &pb.Request{
@@ -66,7 +66,7 @@ func (b *Batch) Put(key, value []byte) error {
 
 // Delete inserts the a key removal into the batch for later committing.
 func (b *Batch) Delete(key []byte) error {
-	b.Writes = append(b.Writes, keyvalue{CopyBytes(key), nil, true})
+	b.Writes = append(b.Writes, KeyValue{CopyBytes(key), nil, true})
 	b.size += len(key)
 
 	var (

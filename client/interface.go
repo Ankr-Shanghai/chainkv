@@ -8,4 +8,5 @@ type Client interface {
 	Has(key []byte) (bool, error)
 	NewBatch() (*Batch, error)
 	NewIter(start, end []byte) (*Iterator, error)
+	NewSnap() (*Snap, error)
 }

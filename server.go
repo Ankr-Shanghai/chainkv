@@ -28,6 +28,10 @@ type kvserver struct {
 	iterLock  sync.Mutex
 	iterIdx   uint32
 	iterCache map[uint32]*Iter
+
+	snapLock  sync.Mutex
+	snapIdx   uint32
+	snapCache map[uint32]*pebble.Snapshot
 }
 
 func NewServer(ip, port, datadir string) (*kvserver, error) {
@@ -39,6 +43,7 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 		})),
 		batchCache: make(map[uint32]*pebble.Batch),
 		iterCache:  make(map[uint32]*Iter),
+		snapCache:  make(map[uint32]*pebble.Snapshot),
 	}
 
 	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),

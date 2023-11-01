@@ -30,6 +30,10 @@ type client struct {
 	// itermap is used to store the iterator object
 	iterLock sync.Mutex
 	iterMap  map[uint32]*Iterator
+
+	// snapMap is used to store the snap object
+	snapLock sync.Mutex
+	snapMap  map[uint32]*Snap
 }
 
 type Option struct {
@@ -60,7 +64,35 @@ func NewClient(opt *Option) (*client, error) {
 		log:      logger,
 		buffer:   buffer,
 		batchMap: make(map[uint32]*Batch),
+		iterMap:  make(map[uint32]*Iterator),
+		snapMap:  make(map[uint32]*Snap),
 	}, nil
+}
+
+func (c *client) NewSnap() (*Snap, error) {
+	var (
+		req = &pb.Request{
+			Type: pb.ReqType_REQ_TYPE_SNAP_NEW,
+		}
+		rsp = &pb.Response{Code: retcode.CodeOK}
+		err error
+	)
+
+	err = c.do(req, rsp)
+	if err != nil {
+		return nil, ErrNewSnap
+	}
+
+	snap := &Snap{
+		client: c,
+		idx:    rsp.Id,
+	}
+
+	c.snapLock.Lock()
+	c.snapMap[rsp.Id] = snap
+	c.snapLock.Unlock()
+
+	return snap, nil
 }
 
 func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
@@ -84,6 +116,10 @@ func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 		idx:    rsp.Id,
 	}
 
+	c.iterLock.Lock()
+	c.iterMap[rsp.Id] = iter
+	c.iterLock.Unlock()
+
 	return iter, nil
 }
 
@@ -103,13 +139,13 @@ func (c *client) NewBatch() (*Batch, error) {
 	batch := &Batch{
 		client: c,
 		idx:    rsp.Id,
-		Writes: make([]keyvalue, 0),
+		Writes: make([]KeyValue, 0),
 	}
 
 	c.batchLock.Lock()
 	c.batchMap[rsp.Id] = batch
 	c.batchLock.Unlock()
-	c.log.Info("NewBatch", "idx", rsp.Id)
+
 	return batch, nil
 }
 
@@ -128,6 +164,13 @@ func (c *client) Close() error {
 		iter.Close()
 	}
 	c.iterLock.Unlock()
+
+	// close all snap
+	c.snapLock.Lock()
+	for _, snap := range c.snapMap {
+		snap.Release()
+	}
+	c.snapLock.Unlock()
 
 	// must be close last
 	c.pool.Close()
