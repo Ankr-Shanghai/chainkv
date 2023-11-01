@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/md5"
+	"fmt"
 	"io"
 
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
-	"github.com/cockroachdb/pebble"
+	"github.com/syndtr/goleveldb/leveldb"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,7 +26,8 @@ func PutHandler(kv *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	err = kv.db.Set(req.Key, req.Val, pebble.Sync)
+	fmt.Printf("Single Put: key=%x, val=%x\n", req.Key, md5.Sum(req.Val))
+	err = kv.db.Put(req.Key, req.Val, nil)
 	if err != nil {
 		kv.log.Error("PutHandler", "err", err)
 		rsp.Code = retcode.ErrPut
@@ -41,9 +44,8 @@ func GetHandler(kv *kvserver, data []byte) interface{} {
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		dat    []byte
-		closer io.Closer
-		err    error
+		dat []byte
+		err error
 	)
 
 	if err = proto.Unmarshal(data, req); err != nil {
@@ -52,9 +54,9 @@ func GetHandler(kv *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	dat, closer, err = kv.db.Get(req.Key)
+	dat, err = kv.db.Get(req.Key, nil)
 	if err != nil {
-		if err == pebble.ErrNotFound {
+		if err == leveldb.ErrNotFound {
 			rsp.Code = retcode.ErrNotFound
 		} else {
 			kv.log.Error("GetHandler", "err", err)
@@ -64,8 +66,8 @@ func GetHandler(kv *kvserver, data []byte) interface{} {
 	}
 	rsp.Val = make([]byte, len(dat))
 	copy(rsp.Val, dat)
-	closer.Close()
 
+	fmt.Printf("Single Get: key=%x, val=%x\n", req.Key, md5.Sum(req.Val))
 END:
 	out, _ := proto.Marshal(rsp)
 	return out
@@ -86,7 +88,7 @@ func DelHandler(kv *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	err = kv.db.Delete(req.Key, pebble.NoSync)
+	err = kv.db.Delete(req.Key, nil)
 	if err != nil {
 		kv.log.Error("DelHandler", "err", err)
 		rsp.Code = retcode.ErrGet
@@ -113,9 +115,9 @@ func HasHandler(kv *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	_, closer, err = kv.db.Get(req.Key)
+	_, err = kv.db.Get(req.Key, nil)
 	if err != nil {
-		if err == pebble.ErrNotFound {
+		if err == leveldb.ErrNotFound {
 			rsp.Code = retcode.ErrNotFound
 		} else {
 			kv.log.Error("HasHandler", "err", err)

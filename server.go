@@ -9,21 +9,22 @@ import (
 	"github.com/Allenxuxu/gev"
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
-	"github.com/cockroachdb/pebble"
+	"github.com/syndtr/goleveldb/leveldb"
 	"google.golang.org/protobuf/proto"
 )
 
 type kvserver struct {
 	server *gev.Server
-	db     *pebble.DB
-	log    *slog.Logger
+	db     *leveldb.DB
+
+	log *slog.Logger
 
 	lock      sync.Mutex
 	connTotal int
 
 	batchLock  sync.Mutex
 	batchIdx   uint32
-	batchCache map[uint32]*pebble.Batch
+	batchCache map[uint32]*leveldb.Batch
 
 	iterLock  sync.Mutex
 	iterIdx   uint32
@@ -31,7 +32,7 @@ type kvserver struct {
 
 	snapLock  sync.Mutex
 	snapIdx   uint32
-	snapCache map[uint32]*pebble.Snapshot
+	snapCache map[uint32]*leveldb.Snapshot
 }
 
 func NewServer(ip, port, datadir string) (*kvserver, error) {
@@ -41,9 +42,9 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
-		batchCache: make(map[uint32]*pebble.Batch),
+		batchCache: make(map[uint32]*leveldb.Batch),
 		iterCache:  make(map[uint32]*Iter),
-		snapCache:  make(map[uint32]*pebble.Snapshot),
+		snapCache:  make(map[uint32]*leveldb.Snapshot),
 	}
 
 	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
@@ -54,7 +55,7 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 	}
 
 	// open the database
-	db, err := NewPebble(datadir)
+	db, err := NewDatabase(datadir)
 	if err != nil {
 		return nil, err
 	}
@@ -68,26 +69,17 @@ func (s *kvserver) Start() {
 }
 
 func (s *kvserver) Stop() {
-	err := s.db.Flush()
-	if err != nil {
-		s.log.Error("kvserver flush memtable to stable storage", "err", err)
-	}
-	err = s.db.Close()
-	if err != nil {
-		s.log.Error("kvserver stop", "err", err)
-	}
-
-	s.batchLock.Lock()
-	for _, batch := range s.batchCache {
-		batch.Close()
-	}
-	s.batchLock.Unlock()
 
 	s.iterLock.Lock()
 	for _, iter := range s.iterCache {
-		iter.iter.Close()
+		iter.iter.Release()
 	}
 	s.iterLock.Unlock()
+
+	err := s.db.Close()
+	if err != nil {
+		s.log.Error("kvserver stop", "err", err)
+	}
 
 	s.server.Stop()
 }

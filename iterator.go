@@ -1,10 +1,13 @@
 package main
 
-import "github.com/cockroachdb/pebble"
+import (
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/util"
+)
 
 type Iter struct {
 	first bool
-	iter  *pebble.Iterator
+	iter  iterator.Iterator
 }
 
 func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
@@ -13,10 +16,7 @@ func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
 
 	kvs.iterIdx++
 	idx := kvs.iterIdx
-	iter, _ := kvs.db.NewIter(&pebble.IterOptions{
-		LowerBound: append(prefix, start...),
-		UpperBound: upperBound(prefix),
-	})
+	iter := kvs.db.NewIterator(bytesPrefixRange(prefix, start), nil)
 
 	kvs.iterCache[idx] = &Iter{
 		first: true,
@@ -49,7 +49,7 @@ func IterClose(kvs *kvserver, idx uint32) {
 	defer kvs.iterLock.Unlock()
 
 	iter := kvs.iterCache[idx]
-	iter.iter.Close()
+	iter.iter.Release()
 	delete(kvs.iterCache, idx)
 }
 
@@ -71,4 +71,13 @@ func upperBound(prefix []byte) (limit []byte) {
 		break
 	}
 	return limit
+}
+
+// bytesPrefixRange returns key range that satisfy
+// - the given prefix, and
+// - the given seek position
+func bytesPrefixRange(prefix, start []byte) *util.Range {
+	r := util.BytesPrefix(prefix)
+	r.Start = append(r.Start, start...)
+	return r
 }

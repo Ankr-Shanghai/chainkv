@@ -1,11 +1,9 @@
 package main
 
 import (
-	"io"
-
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
-	"github.com/cockroachdb/pebble"
+	"github.com/syndtr/goleveldb/leveldb"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,7 +13,8 @@ func NewSnap(kvs *kvserver) uint32 {
 
 	kvs.snapIdx++
 	idx := kvs.snapIdx
-	kvs.snapCache[idx] = kvs.db.NewSnapshot()
+	snap, _ := kvs.db.GetSnapshot()
+	kvs.snapCache[idx] = snap
 
 	return idx
 }
@@ -35,9 +34,8 @@ func SnapGetHandler(kvs *kvserver, data []byte) interface{} {
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err    error
-		closer io.Closer
-		val    []byte
+		err error
+		val []byte
 	)
 
 	if err = proto.Unmarshal(data, req); err != nil {
@@ -46,10 +44,14 @@ func SnapGetHandler(kvs *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	val, closer, _ = kvs.snapCache[req.Id].Get(req.Key)
-	if closer != nil {
-		defer closer.Close()
+	val, err = kvs.snapCache[req.Id].Get(req.Key, nil)
+
+	if err != nil {
+		kvs.log.Error("SnapGetHandler", "err", err)
+		rsp.Code = retcode.ErrGet
+		goto END
 	}
+
 	rsp.Val = val
 
 END:
@@ -63,8 +65,7 @@ func SnapHasHandler(kvs *kvserver, data []byte) interface{} {
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err    error
-		closer io.Closer
+		err error
 	)
 
 	if err = proto.Unmarshal(data, req); err != nil {
@@ -73,12 +74,9 @@ func SnapHasHandler(kvs *kvserver, data []byte) interface{} {
 		goto END
 	}
 
-	_, closer, err = kvs.snapCache[req.Id].Get(req.Key)
-	if closer != nil {
-		defer closer.Close()
-	}
+	_, err = kvs.snapCache[req.Id].Get(req.Key, nil)
 	if err != nil {
-		if err != pebble.ErrNotFound {
+		if err != leveldb.ErrNotFound {
 			rsp.Exist = false
 			rsp.Code = retcode.ErrGet
 		} else {
@@ -108,7 +106,7 @@ func SnapReleaseHandler(kvs *kvserver, data []byte) interface{} {
 
 	kvs.snapLock.Lock()
 	defer kvs.snapLock.Unlock()
-	kvs.snapCache[req.Id].Close()
+	kvs.snapCache[req.Id].Release()
 	delete(kvs.snapCache, req.Id)
 
 END:
