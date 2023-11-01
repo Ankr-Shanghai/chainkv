@@ -14,7 +14,7 @@ type keyvalue struct {
 type Batch struct {
 	client *client
 	idx    uint32
-	writes []keyvalue
+	Writes []keyvalue
 	size   int
 }
 
@@ -43,7 +43,7 @@ func (b *Batch) Close() error {
 
 // Put inserts the given value into the batch for later committing.
 func (b *Batch) Put(key, value []byte) error {
-	b.writes = append(b.writes, keyvalue{CopyBytes(key), CopyBytes(value), false})
+	b.Writes = append(b.Writes, keyvalue{CopyBytes(key), CopyBytes(value), false})
 	b.size += len(key) + len(value)
 	var (
 		req = &pb.Request{
@@ -66,7 +66,7 @@ func (b *Batch) Put(key, value []byte) error {
 
 // Delete inserts the a key removal into the batch for later committing.
 func (b *Batch) Delete(key []byte) error {
-	b.writes = append(b.writes, keyvalue{CopyBytes(key), nil, true})
+	b.Writes = append(b.Writes, keyvalue{CopyBytes(key), nil, true})
 	b.size += len(key)
 
 	var (
@@ -113,7 +113,7 @@ func (b *Batch) Write() error {
 
 // Reset resets the batch for reuse.
 func (b *Batch) Reset() {
-	b.writes = b.writes[:0]
+	b.Writes = b.Writes[:0]
 	b.size = 0
 	var (
 		req = &pb.Request{

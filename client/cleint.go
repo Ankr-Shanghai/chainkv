@@ -103,7 +103,7 @@ func (c *client) NewBatch() (*Batch, error) {
 	batch := &Batch{
 		client: c,
 		idx:    rsp.Id,
-		writes: make([]keyvalue, 0),
+		Writes: make([]keyvalue, 0),
 	}
 
 	c.batchLock.Lock()
