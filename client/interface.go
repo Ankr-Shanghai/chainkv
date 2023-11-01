@@ -6,4 +6,5 @@ type Client interface {
 	Close() error
 	Has(key []byte) (bool, error)
 	NewBatch() *Batch
+	NewIter(start, end []byte) (*Iterator, error)
 }
