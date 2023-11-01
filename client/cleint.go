@@ -152,25 +152,17 @@ func (c *client) NewBatch() (*Batch, error) {
 func (c *client) Close() error {
 
 	// close all batch
-	c.batchLock.Lock()
 	for _, batch := range c.batchMap {
 		batch.Close()
 	}
-	c.batchLock.Unlock()
-
 	// close all iterator
-	c.iterLock.Lock()
 	for _, iter := range c.iterMap {
 		iter.Close()
 	}
-	c.iterLock.Unlock()
-
 	// close all snap
-	c.snapLock.Lock()
 	for _, snap := range c.snapMap {
 		snap.Release()
 	}
-	c.snapLock.Unlock()
 
 	// must be close last
 	c.pool.Close()

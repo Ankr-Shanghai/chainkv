@@ -29,8 +29,7 @@ func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
 func IterNext(kvs *kvserver, idx uint32) bool {
 	if kvs.iterCache[idx].first {
 		kvs.iterCache[idx].first = false
-		kvs.iterCache[idx].iter.First()
-		return true
+		return kvs.iterCache[idx].iter.First()
 	}
 	return kvs.iterCache[idx].iter.Next()
 }

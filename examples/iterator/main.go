@@ -9,15 +9,6 @@ import (
 func main() {
 	fmt.Println("test iterator")
 
-	var (
-		key1 = []byte("key1")
-		key2 = []byte("key2")
-		key3 = []byte("key3")
-		val1 = []byte("val1")
-		val2 = []byte("val2")
-		val3 = []byte("val3")
-	)
-
 	option := &client.Option{
 		Host: "127.0.0.1",
 		Port: "4321",
@@ -31,20 +22,12 @@ func main() {
 	}
 	defer cli.Close()
 
-	cli.Put(key1, val1)
-	cli.Put(key2, val2)
-	cli.Put(key3, val3)
+	iter, _ := cli.NewIter(nil, nil)
 
-	// create iterator
-	iter, err := cli.NewIter([]byte("key"), nil)
-	if err != nil {
-		fmt.Println("NewIter error:", err)
-		return
-	}
-	defer iter.Close()
+	fmt.Printf("iter is %v\n", iter.Next())
 
-	for iter.Next() {
-		fmt.Printf("k: %s, v: %s\n", iter.Key(), iter.Value())
-	}
+	// for iter.Next() {
+
+	// }
 
 }
