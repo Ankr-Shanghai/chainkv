@@ -1,26 +1,29 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"os"
-	"runtime"
 	"sync"
 
-	"github.com/Allenxuxu/gev"
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
+	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/panjf2000/gnet/v2"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"google.golang.org/protobuf/proto"
 )
 
 type kvserver struct {
-	server *gev.Server
-	db     *leveldb.DB
+	gnet.BuiltinEventEngine
+	eng  gnet.Engine
+	log  *slog.Logger
+	addr string
 
-	log *slog.Logger
-
-	lock      sync.Mutex
-	connTotal int
+	db *leveldb.DB
+	wo *opt.WriteOptions
 
 	batchLock  sync.Mutex
 	batchIdx   uint32
@@ -35,7 +38,7 @@ type kvserver struct {
 	snapCache map[uint32]*leveldb.Snapshot
 }
 
-func NewServer(ip, port, datadir string) (*kvserver, error) {
+func NewServer(host, port, datadir string) (*kvserver, error) {
 
 	var err error
 	s := &kvserver{
@@ -45,13 +48,11 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 		batchCache: make(map[uint32]*leveldb.Batch),
 		iterCache:  make(map[uint32]*Iter),
 		snapCache:  make(map[uint32]*leveldb.Snapshot),
+		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
 	}
 
-	s.server, err = gev.NewServer(s, gev.Address(ip+":"+port),
-		gev.CustomProtocol(&Protocol{}),
-		gev.NumLoops(runtime.NumCPU()))
-	if err != nil {
-		return nil, err
+	s.wo = &opt.WriteOptions{
+		Sync: true,
 	}
 
 	// open the database
@@ -64,12 +65,12 @@ func NewServer(ip, port, datadir string) (*kvserver, error) {
 	return s, nil
 }
 
-func (s *kvserver) Start() {
-	s.server.Start()
+func (s *kvserver) Stop(ctx context.Context) {
+	s.eng.Stop(ctx)
 }
 
-func (s *kvserver) Stop() {
-
+func (s *kvserver) OnShutdown(c gnet.Engine) {
+	s.log.Info("server shutdown and clean all resources...")
 	s.iterLock.Lock()
 	for _, iter := range s.iterCache {
 		iter.iter.Release()
@@ -81,32 +82,57 @@ func (s *kvserver) Stop() {
 		s.log.Error("kvserver stop", "err", err)
 	}
 
-	s.server.Stop()
-}
-
-func (s *kvserver) OnConnect(c *gev.Connection) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.connTotal++
-	s.log.Info("OnConnect", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
-}
-
-func (s *kvserver) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
-	name := ctx.(string)
-	s.log.Debug("OnMessage", "name", name, "data", data)
-	handler, ok := handleOps[name]
-	if !ok {
-		rsp := &pb.NotSupport{Code: retcode.ErrNotSupport}
-		out, _ = proto.Marshal(rsp)
-		return
-	}
-	out = handler(s, data)
 	return
 }
 
-func (s *kvserver) OnClose(c *gev.Connection) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.connTotal--
-	s.log.Info("OnClose", "connTotal", s.connTotal, "remoteAddr", c.PeerAddr())
+func (s *kvserver) OnBoot(eng gnet.Engine) (action gnet.Action) {
+	s.log.Info("server booting ...", "addr", s.addr)
+	s.eng = eng
+	return
+}
+
+func (s *kvserver) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	c.SetContext(&codec.Codec{})
+	s.log.Info("OnConnect", "Total", s.eng.CountConnections(), "remoteAddr", c.RemoteAddr())
+	return
+}
+
+func (s *kvserver) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	code := c.Context().(*codec.Codec)
+	// read all data from the buffer
+	data, err := code.Decode(c)
+	if err == codec.ErrIncompletePacket {
+		return
+	}
+	if err != nil {
+		s.log.Error("OnTraffic recieve", "err", err)
+		return gnet.Close
+	}
+	req := &pb.Request{}
+	err = proto.Unmarshal(data, req)
+	if err != nil {
+		s.log.Error("OnTraffic unmarshal", "err", err)
+		return
+	}
+
+	handler, ok := handleOps[req.Type]
+	if !ok {
+		rsp := &pb.NotSupport{Code: retcode.ErrNotSupport}
+		data, _ = proto.Marshal(rsp)
+		return
+	}
+	rsp := handler(s, req)
+	rs, _ := proto.Marshal(rsp)
+	lst, err := code.Encode(rs)
+	if err != nil {
+		s.log.Error("OnTraffic encode", "err", err)
+		return
+	}
+	c.Write(lst)
+	return
+}
+
+func (s *kvserver) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+	s.log.Info("OnClose", "total", s.eng.CountConnections(), "remoteAddr", c.RemoteAddr())
+	return gnet.Close
 }

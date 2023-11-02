@@ -10,7 +10,7 @@ import (
 func NewDatabase(datadir string) (*leveldb.DB, error) {
 
 	var (
-		cache    = 1024
+		cache    = 2048
 		handlers = 2048
 	)
 

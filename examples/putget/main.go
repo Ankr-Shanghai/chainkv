@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Ankr-Shanghai/chainkv/client"
 )
@@ -22,27 +21,43 @@ func main() {
 
 	defer client.Close()
 
-	var puts = fmt.Sprintf(strings.Repeat("a", 32))
+	// var puts = fmt.Sprintf(strings.Repeat("a", 16*1024))
 
 	// fmt.Printf("puts len: %d \n", len(puts))
 
-	err = client.Put([]byte("key"), []byte(puts))
-	if err != nil {
-		fmt.Println("write failed: ", err)
-		return
-	}
-
-	// err = client.Delete([]byte("key"))
+	// err = client.Put([]byte("key"), []byte(puts))
 	// if err != nil {
-	// 	fmt.Println("delete failed: ", err)
+	// 	fmt.Println("write failed: ", err)
 	// 	return
 	// }
 
-	gets, err := client.Get([]byte("key"))
+	rs, err := client.Get([]byte("key"))
 	if err != nil {
-		fmt.Println("write get failed: ", err)
+		fmt.Println("delete failed: ", err)
 		return
 	}
-	fmt.Printf("return len: %d \n", len(gets))
+	fmt.Printf("return len: %d \n", len(rs))
 
+	// src := "657468657265756d2d67656e657369732d0d21840abff46b96c84b2ac9e10e4f5cdaeb5693cb665db62a2f3b02d2d57b5b"
+
+	// dst := make([]byte, hex.DecodedLen(len(src)))
+	// hex.Decode(dst, []byte(src))
+	// gets, err := client.Get(dst)
+	// if err != nil {
+	// 	fmt.Println("write get failed: ", err)
+	// 	return
+	// }
+	// fmt.Printf("return len: %d  val=%x\n", len(gets), md5.Sum(gets))
+
+	// src = "6800000000000000006e"
+
+	// dst = make([]byte, hex.DecodedLen(len(src)))
+	// hex.Decode(dst, []byte(src))
+	// fmt.Printf("dst: %s\n", dst)
+	// gets, err = client.Get(dst)
+	// if err != nil {
+	// 	fmt.Println("write get failed: ", err)
+	// 	return
+	// }
+	// fmt.Printf("return len: %d hash=%x\n", len(gets), md5.Sum(gets))
 }

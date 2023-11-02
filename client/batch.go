@@ -45,6 +45,7 @@ func (b *Batch) Close() error {
 func (b *Batch) Put(key, value []byte) error {
 	b.Writes = append(b.Writes, KeyValue{CopyBytes(key), CopyBytes(value), false})
 	b.size += len(key) + len(value)
+
 	var (
 		req = &pb.Request{
 			Type: pb.ReqType_REQ_TYPE_BATCH_PUT,

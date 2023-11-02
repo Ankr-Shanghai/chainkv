@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -11,7 +10,7 @@ import (
 
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/client/pool"
-	"github.com/Ankr-Shanghai/chainkv/plugins"
+	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/gobwas/pool/pbytes"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +21,7 @@ type client struct {
 	pool   pool.Pool
 	log    *slog.Logger
 	buffer *pbytes.Pool
+	codec  *codec.Codec
 
 	// batchMap is used to store the batch object
 	batchLock sync.Mutex
@@ -66,6 +66,7 @@ func NewClient(opt *Option) (*client, error) {
 		batchMap: make(map[uint32]*Batch),
 		iterMap:  make(map[uint32]*Iterator),
 		snapMap:  make(map[uint32]*Snap),
+		codec:    &codec.Codec{},
 	}, nil
 }
 
@@ -241,11 +242,7 @@ func (c *client) Has(key []byte) (bool, error) {
 	if err != nil {
 		return false, errors.New("get failed")
 	}
-
-	if rsp.Code == retcode.ErrNotFound {
-		return false, ErrNotFound
-	}
-	return true, nil
+	return rsp.Exist, nil
 }
 
 func (c *client) do(req *pb.Request, rsp *pb.Response) error {
@@ -257,35 +254,41 @@ func (c *client) do(req *pb.Request, rsp *pb.Response) error {
 	defer conn.Close()
 
 	reqs, _ := proto.Marshal(req)
+	ret, err := c.codec.Encode(reqs)
+	if err != nil {
+		c.log.Error("Encode failed", "err", err)
+		return err
+	}
 
-	ret := plugins.PackMessage(req.Type.String(), reqs)
 	_, err = conn.Write(ret)
 	if err != nil {
 		c.log.Error("Write failed", "err", err)
 		return err
 	}
 
-	mlen := c.buffer.GetLen(4)
-	defer c.buffer.Put(mlen)
-
-	_, err = conn.Read(mlen)
-	if err != nil {
-		c.log.Error("Read failed", "err", err)
-		return err
-	}
-
-	msgLen := binary.BigEndian.Uint32(mlen)
-	buf := c.buffer.GetLen(int(msgLen))
+	buf := c.buffer.GetLen(4 * 1024 * 1024)
 	defer c.buffer.Put(buf)
 
-	_, err = conn.Read(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		return err
 	}
 
-	err = proto.Unmarshal(buf, rsp)
+	rs, err := c.codec.Unpack(buf[:n])
 	if err != nil {
+		c.log.Error("Unpack failed", "err", err, "len", n)
 		return err
+	}
+
+	err = proto.Unmarshal(rs, rsp)
+	if err != nil {
+		c.log.Error("Unmarshal failed", "err", err, "len", n)
+		return err
+	}
+
+	if rsp.Code != retcode.CodeOK {
+		c.log.Error("Response failed", "code", rsp.Code)
+		return errors.New("response failed")
 	}
 
 	return nil

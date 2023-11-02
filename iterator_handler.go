@@ -3,134 +3,62 @@ package main
 import (
 	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
-	"google.golang.org/protobuf/proto"
 )
 
-func NewIteratorHandler(kvs *kvserver, data []byte) interface{} {
-	req := &pb.Request{}
+func NewIteratorHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	rsp := &pb.Response{
 		Code: retcode.CodeOK,
 	}
-
-	if err := proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("NewIteratorHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	rsp.Id = NewIter(kvs, req.Key, req.Val)
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }
 
-func IterNextHandler(kvs *kvserver, data []byte) interface{} {
+func IterNextHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	var (
-		req = &pb.Request{}
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err error
 	)
-
-	if err = proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("IterNextHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	rsp.Exist = IterNext(kvs, req.Id)
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }
 
-func IterKeyHandler(kvs *kvserver, data []byte) interface{} {
+func IterKeyHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	var (
-		req = &pb.Request{}
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err error
 	)
-
-	if err = proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("IterKeyHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	rsp.Val = IterKey(kvs, req.Id)
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }
 
-func IterValHandler(kvs *kvserver, data []byte) interface{} {
+func IterValHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	var (
-		req = &pb.Request{}
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err error
 	)
-
-	if err = proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("IterValueHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	rsp.Val = IterValue(kvs, req.Id)
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }
 
-func IterErrorHandler(kvs *kvserver, data []byte) interface{} {
+func IterErrorHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	var (
-		req = &pb.Request{}
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err error
 	)
-
-	if err = proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("IterErrorHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	rsp.Exist = IterError(kvs, req.Id) != nil
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }
 
-func IterCloseHandler(kvs *kvserver, data []byte) interface{} {
+func IterCloseHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	var (
-		req = &pb.Request{}
 		rsp = &pb.Response{
 			Code: retcode.CodeOK,
 		}
-		err error
 	)
-
-	if err = proto.Unmarshal(data, req); err != nil {
-		kvs.log.Error("IterCloseHandler unmarshal request", "err", err)
-		rsp.Code = retcode.ErrUnmarshal
-		goto END
-	}
-
 	IterClose(kvs, req.Id)
-
-END:
-	out, _ := proto.Marshal(rsp)
-	return out
+	return rsp
 }

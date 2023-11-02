@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"fmt"
-
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -27,7 +24,6 @@ func BatchWrite(kvs *kvserver, idx uint32) error {
 }
 
 func BatchPut(kvs *kvserver, idx uint32, key, val []byte) {
-	fmt.Printf("BatchPut: key=%x, val=%x\n", key, md5.Sum(val))
 	kvs.batchCache[idx].Put(key, val)
 }
 

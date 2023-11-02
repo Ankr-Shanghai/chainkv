@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/panjf2000/gnet/v2"
 	"github.com/sunvim/utils/grace"
 	"github.com/urfave/cli/v2"
 )
@@ -46,18 +47,19 @@ func kvact(ctx *cli.Context) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(-1)
 	}
-	_, gs := grace.New(context.Background())
+
+	ctxHandler, gs := grace.New(context.Background())
 
 	gs.Register(func() error {
-		srv.log.Info("chainkv service is stopping ...")
-		srv.Stop()
-		srv.log.Info("chainkv service stopped!")
+		srv.Stop(ctxHandler)
 		return nil
 	})
 
-	gs.RegisterService("chainkv", func(c context.Context) error {
-		srv.log.Info("chainkv service start", "host", host, "port", port)
-		srv.Start()
+	gs.RegisterService("main service", func(ctx context.Context) error {
+		err = gnet.Run(srv, srv.addr, gnet.WithMulticore(true))
+		if err != nil {
+			srv.log.Error("main service exit", "err", err)
+		}
 		return nil
 	})
 
