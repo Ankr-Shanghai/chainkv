@@ -10,9 +10,8 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
+	"github.com/cockroachdb/pebble"
 	"github.com/panjf2000/gnet/v2"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -22,20 +21,20 @@ type kvserver struct {
 	log  *slog.Logger
 	addr string
 
-	db *leveldb.DB
-	wo *opt.WriteOptions
+	db *pebble.DB
+	wo *pebble.WriteOptions
 
-	batchLock  sync.Mutex
+	batchLock  sync.RWMutex
 	batchIdx   uint32
-	batchCache map[uint32]*leveldb.Batch
+	batchCache map[uint32]*pebble.Batch
 
-	iterLock  sync.Mutex
+	iterLock  sync.RWMutex
 	iterIdx   uint32
 	iterCache map[uint32]*Iter
 
-	snapLock  sync.Mutex
+	snapLock  sync.RWMutex
 	snapIdx   uint32
-	snapCache map[uint32]*leveldb.Snapshot
+	snapCache map[uint32]*pebble.Snapshot
 }
 
 func NewServer(host, port, datadir string) (*kvserver, error) {
@@ -45,18 +44,16 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
-		batchCache: make(map[uint32]*leveldb.Batch),
+		batchCache: make(map[uint32]*pebble.Batch),
 		iterCache:  make(map[uint32]*Iter),
-		snapCache:  make(map[uint32]*leveldb.Snapshot),
+		snapCache:  make(map[uint32]*pebble.Snapshot),
 		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
 	}
 
-	s.wo = &opt.WriteOptions{
-		Sync: true,
-	}
+	s.wo = pebble.Sync
 
 	// open the database
-	db, err := NewDatabase(datadir)
+	db, err := NewPebble(datadir)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +68,17 @@ func (s *kvserver) Stop(ctx context.Context) {
 
 func (s *kvserver) OnShutdown(c gnet.Engine) {
 	s.log.Info("server shutdown and clean all resources...")
-	s.iterLock.Lock()
 	for _, iter := range s.iterCache {
-		iter.iter.Release()
+		iter.iter.Close()
 	}
-	s.iterLock.Unlock()
+
+	for _, snap := range s.snapCache {
+		snap.Close()
+	}
+
+	for _, batch := range s.batchCache {
+		batch.Close()
+	}
 
 	err := s.db.Close()
 	if err != nil {

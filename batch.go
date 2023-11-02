@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/syndtr/goleveldb/leveldb"
-)
+import "github.com/cockroachdb/pebble"
 
 func NewBatch(kvs *kvserver) uint32 {
 	kvs.batchLock.Lock()
@@ -10,25 +8,33 @@ func NewBatch(kvs *kvserver) uint32 {
 
 	kvs.batchIdx++
 	idx := kvs.batchIdx
-	kvs.batchCache[idx] = new(leveldb.Batch)
+	kvs.batchCache[idx] = kvs.db.NewBatch()
 
 	return idx
 }
 
 func BatchReset(kvs *kvserver, idx uint32) {
+	kvs.batchLock.RLock()
+	defer kvs.batchLock.RUnlock()
 	kvs.batchCache[idx].Reset()
 }
 
 func BatchWrite(kvs *kvserver, idx uint32) error {
-	return kvs.db.Write(kvs.batchCache[idx], nil)
+	kvs.batchLock.RLock()
+	defer kvs.batchLock.RUnlock()
+	return kvs.batchCache[idx].Commit(kvs.wo)
 }
 
 func BatchPut(kvs *kvserver, idx uint32, key, val []byte) {
-	kvs.batchCache[idx].Put(key, val)
+	kvs.batchLock.RLock()
+	defer kvs.batchLock.RUnlock()
+	kvs.batchCache[idx].Set(key, val, pebble.NoSync)
 }
 
 func BatchDel(kvs *kvserver, idx uint32, key []byte) {
-	kvs.batchCache[idx].Delete(key)
+	kvs.batchLock.RLock()
+	defer kvs.batchLock.RUnlock()
+	kvs.batchCache[idx].Delete(key, pebble.NoSync)
 }
 
 func BatchClose(kvs *kvserver, idx uint32) {

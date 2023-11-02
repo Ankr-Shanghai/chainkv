@@ -186,9 +186,6 @@ func (c *client) Get(key []byte) ([]byte, error) {
 		return nil, errors.New("get failed")
 	}
 
-	if rsp.Code == retcode.ErrNotFound {
-		return nil, ErrNotFound
-	}
 	return rsp.Val, nil
 }
 
@@ -242,6 +239,11 @@ func (c *client) Has(key []byte) (bool, error) {
 	if err != nil {
 		return false, errors.New("get failed")
 	}
+
+	if rsp.Code == retcode.ErrNotFound {
+		return false, nil
+	}
+
 	return rsp.Exist, nil
 }
 
