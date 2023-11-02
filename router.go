@@ -8,10 +8,11 @@ type Handler func(kv *kvserver, req *types.Request) *types.Response
 
 var (
 	handleOps = map[types.ReqType]Handler{
-		types.ReqType_REQ_TYPE_PUT: PutHandler,
-		types.ReqType_REQ_TYPE_GET: GetHandler,
-		types.ReqType_REQ_TYPE_DEL: DelHandler,
-		types.ReqType_REQ_TYPE_HAS: HasHandler,
+		types.ReqType_REQ_TYPE_PUT:   PutHandler,
+		types.ReqType_REQ_TYPE_GET:   GetHandler,
+		types.ReqType_REQ_TYPE_DEL:   DelHandler,
+		types.ReqType_REQ_TYPE_HAS:   HasHandler,
+		types.ReqType_REQ_TYPE_FLUSH: FlushDBHandler,
 		// batch
 		types.ReqType_REQ_TYPE_BATCH_NEW:   NewBatchHandler,
 		types.ReqType_REQ_TYPE_BATCH_PUT:   BatchPutHandler,

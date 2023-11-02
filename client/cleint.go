@@ -70,6 +70,22 @@ func NewClient(opt *Option) (*client, error) {
 	}, nil
 }
 
+func (c *client) flush() error {
+	var (
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_FLUSH,
+		}
+		rsp = &types.Response{Code: retcode.CodeOK}
+		err error
+	)
+
+	err = c.do(req, rsp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *client) NewSnap() (*Snap, error) {
 	var (
 		req = &types.Request{
@@ -163,6 +179,11 @@ func (c *client) Close() error {
 	// close all snap
 	for _, snap := range c.snapMap {
 		snap.Release()
+	}
+
+	err := c.flush()
+	if err != nil {
+		return err
 	}
 
 	// must be close last

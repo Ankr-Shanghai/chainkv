@@ -8,6 +8,23 @@ import (
 	"github.com/cockroachdb/pebble"
 )
 
+func FlushDBHandler(kv *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+
+	err := kv.db.Flush()
+	if err != nil {
+		rsp.Code = retcode.ErrFlush
+	}
+
+	kv.log.Info("FlushDBHandler", "err", err)
+
+	return rsp
+}
+
 func PutHandler(kv *kvserver, req *types.Request) *types.Response {
 	var (
 		rsp = &types.Response{

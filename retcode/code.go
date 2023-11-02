@@ -9,4 +9,5 @@ const (
 	ErrNotFound
 	ErrBatchReset
 	ErrBatchWrite
+	ErrFlush
 )
