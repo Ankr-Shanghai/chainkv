@@ -4,14 +4,14 @@ import (
 	"crypto/md5"
 	"fmt"
 
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-func PutHandler(kv *kvserver, req *pb.Request) *pb.Response {
+func PutHandler(kv *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -27,9 +27,9 @@ func PutHandler(kv *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func GetHandler(kv *kvserver, req *pb.Request) *pb.Response {
+func GetHandler(kv *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -45,12 +45,14 @@ func GetHandler(kv *kvserver, req *pb.Request) *pb.Response {
 		}
 	}
 
+	fmt.Printf("GetHandler key=%x vlen=%x code=%d\n", req.Key, md5.Sum(rsp.Val), rsp.Code)
+
 	return rsp
 }
 
-func DelHandler(kv *kvserver, req *pb.Request) *pb.Response {
+func DelHandler(kv *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -65,9 +67,9 @@ func DelHandler(kv *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func HasHandler(kv *kvserver, req *pb.Request) *pb.Response {
+func HasHandler(kv *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error

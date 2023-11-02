@@ -7,13 +7,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"google.golang.org/protobuf/proto"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type kvserver struct {
@@ -108,8 +108,8 @@ func (s *kvserver) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		s.log.Error("OnTraffic recieve", "err", err)
 		return gnet.Close
 	}
-	req := &pb.Request{}
-	err = proto.Unmarshal(data, req)
+	req := &types.Request{}
+	err = msgpack.Unmarshal(data, req)
 	if err != nil {
 		s.log.Error("OnTraffic unmarshal", "err", err)
 		return
@@ -117,12 +117,15 @@ func (s *kvserver) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 	handler, ok := handleOps[req.Type]
 	if !ok {
-		rsp := &pb.NotSupport{Code: retcode.ErrNotSupport}
-		data, _ = proto.Marshal(rsp)
+		rsp := &types.Response{Code: retcode.ErrNotSupport}
+		data, _ = msgpack.Marshal(rsp)
 		return
 	}
 	rsp := handler(s, req)
-	rs, _ := proto.Marshal(rsp)
+	rs, err := msgpack.Marshal(rsp)
+	if err != nil {
+		s.log.Error("OnTraffic marshal", "err", err)
+	}
 	lst, err := code.Encode(rs)
 	if err != nil {
 		s.log.Error("OnTraffic encode", "err", err)

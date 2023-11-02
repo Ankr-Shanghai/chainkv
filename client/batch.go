@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
 type KeyValue struct {
@@ -20,11 +20,11 @@ type Batch struct {
 
 func (b *Batch) Close() error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_CLOSE,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_CLOSE,
 			Id:   b.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -47,13 +47,13 @@ func (b *Batch) Put(key, value []byte) error {
 	b.size += len(key) + len(value)
 
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_PUT,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_PUT,
 			Key:  key,
 			Val:  value,
 			Id:   b.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -71,12 +71,12 @@ func (b *Batch) Delete(key []byte) error {
 	b.size += len(key)
 
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_DEL,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_DEL,
 			Key:  key,
 			Id:   b.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -96,11 +96,11 @@ func (b *Batch) ValueSize() int {
 // Write flushes any accumulated data to the memory database.
 func (b *Batch) Write() error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_WRITE,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_WRITE,
 			Id:   b.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -117,11 +117,11 @@ func (b *Batch) Reset() {
 	b.Writes = b.Writes[:0]
 	b.size = 0
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_RESET,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_RESET,
 			Id:   b.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 

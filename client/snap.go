@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
 type Snap struct {
@@ -12,12 +12,12 @@ type Snap struct {
 
 func (s *Snap) Get(key []byte) ([]byte, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_SNAP_GET,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_SNAP_GET,
 			Id:   s.idx,
 			Key:  key,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := s.client.do(req, rsp)
@@ -30,12 +30,12 @@ func (s *Snap) Get(key []byte) ([]byte, error) {
 
 func (s *Snap) Has(key []byte) (bool, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_SNAP_HAS,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_SNAP_HAS,
 			Id:   s.idx,
 			Key:  key,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := s.client.do(req, rsp)
@@ -48,11 +48,11 @@ func (s *Snap) Has(key []byte) (bool, error) {
 
 func (s *Snap) Release() error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_SNAP_RELEASE,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_SNAP_RELEASE,
 			Id:   s.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := s.client.do(req, rsp)

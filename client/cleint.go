@@ -8,12 +8,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/client/pool"
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/gobwas/pool/pbytes"
-	"google.golang.org/protobuf/proto"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type client struct {
@@ -72,10 +72,10 @@ func NewClient(opt *Option) (*client, error) {
 
 func (c *client) NewSnap() (*Snap, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_SNAP_NEW,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_SNAP_NEW,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -98,12 +98,12 @@ func (c *client) NewSnap() (*Snap, error) {
 
 func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_NEW,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_NEW,
 			Key:  prefix,
 			Val:  start,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -127,10 +127,10 @@ func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 func (c *client) NewBatch() (*Batch, error) {
 
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_BATCH_NEW,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_BATCH_NEW,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 	err = c.do(req, rsp)
@@ -173,11 +173,11 @@ func (c *client) Close() error {
 
 func (c *client) Get(key []byte) ([]byte, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_GET,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_GET,
 			Key:  key,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -194,12 +194,12 @@ func (c *client) Get(key []byte) ([]byte, error) {
 
 func (c *client) Put(key, value []byte) error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_PUT,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_PUT,
 			Key:  key,
 			Val:  value,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -213,11 +213,11 @@ func (c *client) Put(key, value []byte) error {
 
 func (c *client) Delete(key []byte) error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_DEL,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_DEL,
 			Key:  key,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -230,11 +230,11 @@ func (c *client) Delete(key []byte) error {
 
 func (c *client) Has(key []byte) (bool, error) {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_GET,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_GET,
 			Key:  key,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
 	)
 
@@ -245,7 +245,7 @@ func (c *client) Has(key []byte) (bool, error) {
 	return rsp.Exist, nil
 }
 
-func (c *client) do(req *pb.Request, rsp *pb.Response) error {
+func (c *client) do(req *types.Request, rsp *types.Response) error {
 	conn, err := c.pool.Get()
 	if err != nil {
 		c.log.Error("Get connection failed", "err", err)
@@ -253,7 +253,7 @@ func (c *client) do(req *pb.Request, rsp *pb.Response) error {
 	}
 	defer conn.Close()
 
-	reqs, _ := proto.Marshal(req)
+	reqs, _ := msgpack.Marshal(req)
 	ret, err := c.codec.Encode(reqs)
 	if err != nil {
 		c.log.Error("Encode failed", "err", err)
@@ -266,23 +266,23 @@ func (c *client) do(req *pb.Request, rsp *pb.Response) error {
 		return err
 	}
 
-	buf := c.buffer.GetLen(4 * 1024 * 1024)
+	buf := c.buffer.GetLen(1024 * 1024 * 4)
 	defer c.buffer.Put(buf)
+	// rd := bufio.NewReader(conn)
+	// wn, err := io.ReadFull(rd, buf)
 
-	n, err := conn.Read(buf)
+	wn, err := conn.Read(buf)
 	if err != nil {
 		return err
 	}
-
-	rs, err := c.codec.Unpack(buf[:n])
+	rs, err := c.codec.Unpack(buf[:wn])
 	if err != nil {
-		c.log.Error("Unpack failed", "err", err, "len", n)
+		c.log.Error("Unpack failed", "err", err, "len", wn)
 		return err
 	}
-
-	err = proto.Unmarshal(rs, rsp)
+	err = msgpack.Unmarshal(rs, rsp)
 	if err != nil {
-		c.log.Error("Unmarshal failed", "err", err, "len", n)
+		c.log.Error("Unmarshal failed", "err", err, "len", wn)
 		return err
 	}
 

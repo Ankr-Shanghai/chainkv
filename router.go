@@ -1,33 +1,35 @@
 package main
 
-import "github.com/Ankr-Shanghai/chainkv/client/pb"
+import (
+	"github.com/Ankr-Shanghai/chainkv/types"
+)
 
-type Handler func(kv *kvserver, req *pb.Request) *pb.Response
+type Handler func(kv *kvserver, req *types.Request) *types.Response
 
 var (
-	handleOps = map[pb.ReqType]Handler{
-		pb.ReqType_REQ_TYPE_PUT: PutHandler,
-		pb.ReqType_REQ_TYPE_GET: GetHandler,
-		pb.ReqType_REQ_TYPE_DEL: DelHandler,
-		pb.ReqType_REQ_TYPE_HAS: HasHandler,
+	handleOps = map[types.ReqType]Handler{
+		types.ReqType_REQ_TYPE_PUT: PutHandler,
+		types.ReqType_REQ_TYPE_GET: GetHandler,
+		types.ReqType_REQ_TYPE_DEL: DelHandler,
+		types.ReqType_REQ_TYPE_HAS: HasHandler,
 		// batch
-		pb.ReqType_REQ_TYPE_BATCH_NEW:   NewBatchHandler,
-		pb.ReqType_REQ_TYPE_BATCH_PUT:   BatchPutHandler,
-		pb.ReqType_REQ_TYPE_BATCH_DEL:   BatchDelHandler,
-		pb.ReqType_REQ_TYPE_BATCH_WRITE: BatchWriteHandler,
-		pb.ReqType_REQ_TYPE_BATCH_RESET: BatchResetHandler,
-		pb.ReqType_REQ_TYPE_BATCH_CLOSE: BatchCloseHandler,
+		types.ReqType_REQ_TYPE_BATCH_NEW:   NewBatchHandler,
+		types.ReqType_REQ_TYPE_BATCH_PUT:   BatchPutHandler,
+		types.ReqType_REQ_TYPE_BATCH_DEL:   BatchDelHandler,
+		types.ReqType_REQ_TYPE_BATCH_WRITE: BatchWriteHandler,
+		types.ReqType_REQ_TYPE_BATCH_RESET: BatchResetHandler,
+		types.ReqType_REQ_TYPE_BATCH_CLOSE: BatchCloseHandler,
 		// iter
-		pb.ReqType_REQ_TYPE_ITER_NEW:   NewIteratorHandler,
-		pb.ReqType_REQ_TYPE_ITER_NEXT:  IterNextHandler,
-		pb.ReqType_REQ_TYPE_ITER_KEY:   IterKeyHandler,
-		pb.ReqType_REQ_TYPE_ITER_VAL:   IterValHandler,
-		pb.ReqType_REQ_TYPE_ITER_ERROR: IterErrorHandler,
-		pb.ReqType_REQ_TYPE_ITER_CLOSE: IterCloseHandler,
+		types.ReqType_REQ_TYPE_ITER_NEW:   NewIteratorHandler,
+		types.ReqType_REQ_TYPE_ITER_NEXT:  IterNextHandler,
+		types.ReqType_REQ_TYPE_ITER_KEY:   IterKeyHandler,
+		types.ReqType_REQ_TYPE_ITER_VAL:   IterValHandler,
+		types.ReqType_REQ_TYPE_ITER_ERROR: IterErrorHandler,
+		types.ReqType_REQ_TYPE_ITER_CLOSE: IterCloseHandler,
 		// snap
-		pb.ReqType_REQ_TYPE_SNAP_NEW:     NewSnapHandler,
-		pb.ReqType_REQ_TYPE_SNAP_HAS:     SnapHasHandler,
-		pb.ReqType_REQ_TYPE_SNAP_GET:     SnapGetHandler,
-		pb.ReqType_REQ_TYPE_SNAP_RELEASE: SnapReleaseHandler,
+		types.ReqType_REQ_TYPE_SNAP_NEW:     NewSnapHandler,
+		types.ReqType_REQ_TYPE_SNAP_HAS:     SnapHasHandler,
+		types.ReqType_REQ_TYPE_SNAP_GET:     SnapGetHandler,
+		types.ReqType_REQ_TYPE_SNAP_RELEASE: SnapReleaseHandler,
 	}
 )

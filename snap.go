@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
 func NewSnap(kvs *kvserver) uint32 {
@@ -17,17 +17,17 @@ func NewSnap(kvs *kvserver) uint32 {
 	return idx
 }
 
-func NewSnapHandler(kvs *kvserver, req *pb.Request) *pb.Response {
-	rsp := &pb.Response{
+func NewSnapHandler(kvs *kvserver, req *types.Request) *types.Response {
+	rsp := &types.Response{
 		Code: retcode.CodeOK,
 	}
 	rsp.Id = NewSnap(kvs)
 	return rsp
 }
 
-func SnapGetHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func SnapGetHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -42,9 +42,9 @@ func SnapGetHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func SnapHasHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func SnapHasHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 		err error
@@ -59,9 +59,9 @@ func SnapHasHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func SnapReleaseHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func SnapReleaseHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)

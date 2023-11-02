@@ -3,8 +3,8 @@ package client
 import (
 	"errors"
 
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
 type Iterator struct {
@@ -14,11 +14,11 @@ type Iterator struct {
 
 func (i *Iterator) Next() bool {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_NEXT,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_NEXT,
 			Id:   i.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := i.client.do(req, rsp)
@@ -31,11 +31,11 @@ func (i *Iterator) Next() bool {
 
 func (i *Iterator) Key() []byte {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_KEY,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_KEY,
 			Id:   i.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := i.client.do(req, rsp)
@@ -48,11 +48,11 @@ func (i *Iterator) Key() []byte {
 
 func (i *Iterator) Value() []byte {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_VAL,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_VAL,
 			Id:   i.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := i.client.do(req, rsp)
@@ -65,11 +65,11 @@ func (i *Iterator) Value() []byte {
 
 func (i *Iterator) Error() error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_ERROR,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_ERROR,
 			Id:   i.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := i.client.do(req, rsp)
@@ -86,11 +86,11 @@ func (i *Iterator) Error() error {
 
 func (i *Iterator) Close() error {
 	var (
-		req = &pb.Request{
-			Type: pb.ReqType_REQ_TYPE_ITER_CLOSE,
+		req = &types.Request{
+			Type: types.ReqType_REQ_TYPE_ITER_CLOSE,
 			Id:   i.idx,
 		}
-		rsp = &pb.Response{Code: retcode.CodeOK}
+		rsp = &types.Response{Code: retcode.CodeOK}
 	)
 
 	err := i.client.do(req, rsp)

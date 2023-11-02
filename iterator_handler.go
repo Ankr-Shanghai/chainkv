@@ -1,21 +1,21 @@
 package main
 
 import (
-	"github.com/Ankr-Shanghai/chainkv/client/pb"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
+	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
-func NewIteratorHandler(kvs *kvserver, req *pb.Request) *pb.Response {
-	rsp := &pb.Response{
+func NewIteratorHandler(kvs *kvserver, req *types.Request) *types.Response {
+	rsp := &types.Response{
 		Code: retcode.CodeOK,
 	}
 	rsp.Id = NewIter(kvs, req.Key, req.Val)
 	return rsp
 }
 
-func IterNextHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func IterNextHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)
@@ -23,9 +23,9 @@ func IterNextHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func IterKeyHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func IterKeyHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)
@@ -33,9 +33,9 @@ func IterKeyHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func IterValHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func IterValHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)
@@ -43,9 +43,9 @@ func IterValHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func IterErrorHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func IterErrorHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)
@@ -53,9 +53,9 @@ func IterErrorHandler(kvs *kvserver, req *pb.Request) *pb.Response {
 	return rsp
 }
 
-func IterCloseHandler(kvs *kvserver, req *pb.Request) *pb.Response {
+func IterCloseHandler(kvs *kvserver, req *types.Request) *types.Response {
 	var (
-		rsp = &pb.Response{
+		rsp = &types.Response{
 			Code: retcode.CodeOK,
 		}
 	)
