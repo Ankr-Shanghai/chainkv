@@ -268,21 +268,34 @@ func (c *client) do(req *types.Request, rsp *types.Response) error {
 
 	buf := c.buffer.GetLen(1024 * 1024 * 4)
 	defer c.buffer.Put(buf)
-	// rd := bufio.NewReader(conn)
-	// wn, err := io.ReadFull(rd, buf)
+	buf = buf[:0]
 
-	wn, err := conn.Read(buf)
-	if err != nil {
-		return err
+	cache := c.buffer.GetLen(4 * 1024)
+	defer c.buffer.Put(cache)
+	var (
+		total = 0
+		rs    []byte
+	)
+
+	// read from connection
+	for {
+		wn, err := conn.Read(cache)
+		if err != nil {
+			return err
+		}
+		total += wn
+		buf = append(buf, cache[:wn]...)
+		rs, err = c.codec.Unpack(buf[:total])
+		if err != nil {
+			continue
+		} else {
+			break
+		}
 	}
-	rs, err := c.codec.Unpack(buf[:wn])
-	if err != nil {
-		c.log.Error("Unpack failed", "err", err, "len", wn)
-		return err
-	}
+
 	err = msgpack.Unmarshal(rs, rsp)
 	if err != nil {
-		c.log.Error("Unmarshal failed", "err", err, "len", wn)
+		c.log.Error("Unmarshal failed", "err", err, "len", total)
 		return err
 	}
 
