@@ -286,10 +286,5 @@ func (c *client) do(req *pb.Request, rsp *pb.Response) error {
 		return err
 	}
 
-	if rsp.Code != retcode.CodeOK {
-		c.log.Error("Response failed", "code", rsp.Code)
-		return errors.New("response failed")
-	}
-
 	return nil
 }
