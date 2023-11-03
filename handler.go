@@ -20,8 +20,6 @@ func FlushDBHandler(kv *kvserver, req *types.Request) *types.Response {
 		rsp.Code = retcode.ErrFlush
 	}
 
-	kv.log.Info("FlushDBHandler", "err", err)
-
 	return rsp
 }
 

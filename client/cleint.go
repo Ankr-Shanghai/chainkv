@@ -249,7 +249,7 @@ func (c *client) Delete(key []byte) error {
 func (c *client) Has(key []byte) (bool, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_GET,
+			Type: types.ReqType_REQ_TYPE_HAS,
 			Key:  key,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}

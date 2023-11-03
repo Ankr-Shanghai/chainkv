@@ -1,7 +1,5 @@
 package main
 
-import "github.com/cockroachdb/pebble"
-
 func NewBatch(kvs *kvserver) uint32 {
 	kvs.batchLock.Lock()
 	defer kvs.batchLock.Unlock()
@@ -28,13 +26,13 @@ func BatchWrite(kvs *kvserver, idx uint32) error {
 func BatchPut(kvs *kvserver, idx uint32, key, val []byte) {
 	kvs.batchLock.RLock()
 	defer kvs.batchLock.RUnlock()
-	kvs.batchCache[idx].Set(key, val, pebble.NoSync)
+	kvs.batchCache[idx].Set(key, val, kvs.wo)
 }
 
 func BatchDel(kvs *kvserver, idx uint32, key []byte) {
 	kvs.batchLock.RLock()
 	defer kvs.batchLock.RUnlock()
-	kvs.batchCache[idx].Delete(key, pebble.NoSync)
+	kvs.batchCache[idx].Delete(key, kvs.wo)
 }
 
 func BatchClose(kvs *kvserver, idx uint32) {

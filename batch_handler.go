@@ -20,6 +20,7 @@ func BatchPutHandler(kvs *kvserver, req *types.Request) *types.Response {
 		}
 	)
 	BatchPut(kvs, req.Id, req.Key, req.Val)
+
 	return rsp
 }
 
