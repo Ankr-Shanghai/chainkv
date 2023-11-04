@@ -21,7 +21,7 @@ type Batch struct {
 func (b *Batch) Close() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_CLOSE,
+			Type: types.REQ_TYPE_BATCH_CLOSE,
 			Id:   b.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -48,7 +48,7 @@ func (b *Batch) Put(key, value []byte) error {
 
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_PUT,
+			Type: types.REQ_TYPE_BATCH_PUT,
 			Key:  key,
 			Val:  value,
 			Id:   b.idx,
@@ -72,7 +72,7 @@ func (b *Batch) Delete(key []byte) error {
 
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_DEL,
+			Type: types.REQ_TYPE_BATCH_DEL,
 			Key:  key,
 			Id:   b.idx,
 		}
@@ -97,7 +97,7 @@ func (b *Batch) ValueSize() int {
 func (b *Batch) Write() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_WRITE,
+			Type: types.REQ_TYPE_BATCH_WRITE,
 			Id:   b.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -118,7 +118,7 @@ func (b *Batch) Reset() {
 	b.size = 0
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_RESET,
+			Type: types.REQ_TYPE_BATCH_RESET,
 			Id:   b.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}

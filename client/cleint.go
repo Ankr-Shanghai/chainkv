@@ -13,7 +13,6 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/gobwas/pool/pbytes"
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 type client struct {
@@ -44,19 +43,19 @@ type Option struct {
 
 func NewClient(opt *Option) (*client, error) {
 	src := fmt.Sprintf("%s:%s", opt.Host, opt.Port)
-	functory := func() (net.Conn, error) {
+	factory := func() (net.Conn, error) {
 		return net.Dial("tcp", src)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	p, err := pool.NewPool(opt.Size, opt.Size, functory, nil)
+	p, err := pool.NewPool(opt.Size, opt.Size, factory, nil)
 	if err != nil {
 		logger.Error("NewClient", "err", err)
 		return nil, err
 	}
 
-	buffer := pbytes.New(128, 1024*1024*128)
+	buffer := pbytes.New(128, 1024*1024*64)
 
 	return &client{
 		src:      src,
@@ -73,7 +72,7 @@ func NewClient(opt *Option) (*client, error) {
 func (c *client) flush() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_FLUSH,
+			Type: types.REQ_TYPE_FLUSH,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
@@ -89,7 +88,7 @@ func (c *client) flush() error {
 func (c *client) NewSnap() (*Snap, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_SNAP_NEW,
+			Type: types.REQ_TYPE_SNAP_NEW,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
@@ -115,7 +114,7 @@ func (c *client) NewSnap() (*Snap, error) {
 func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_NEW,
+			Type: types.REQ_TYPE_ITER_NEW,
 			Key:  prefix,
 			Val:  start,
 		}
@@ -144,7 +143,7 @@ func (c *client) NewBatch() (*Batch, error) {
 
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_BATCH_NEW,
+			Type: types.REQ_TYPE_BATCH_NEW,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
 		err error
@@ -195,7 +194,7 @@ func (c *client) Close() error {
 func (c *client) Get(key []byte) ([]byte, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_GET,
+			Type: types.REQ_TYPE_GET,
 			Key:  key,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -213,7 +212,7 @@ func (c *client) Get(key []byte) ([]byte, error) {
 func (c *client) Put(key, value []byte) error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_PUT,
+			Type: types.REQ_TYPE_PUT,
 			Key:  key,
 			Val:  value,
 		}
@@ -232,7 +231,7 @@ func (c *client) Put(key, value []byte) error {
 func (c *client) Delete(key []byte) error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_DEL,
+			Type: types.REQ_TYPE_DEL,
 			Key:  key,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -249,7 +248,7 @@ func (c *client) Delete(key []byte) error {
 func (c *client) Has(key []byte) (bool, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_HAS,
+			Type: types.REQ_TYPE_HAS,
 			Key:  key,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -276,7 +275,7 @@ func (c *client) do(req *types.Request, rsp *types.Response) error {
 	}
 	defer conn.Close()
 
-	reqs, _ := msgpack.Marshal(req)
+	reqs := req.Marshal()
 	ret, err := c.codec.Encode(reqs)
 	if err != nil {
 		c.log.Error("Encode failed", "err", err)
@@ -290,11 +289,13 @@ func (c *client) do(req *types.Request, rsp *types.Response) error {
 	}
 
 	buf := c.buffer.GetLen(1024 * 1024 * 4)
-	defer c.buffer.Put(buf)
 	buf = buf[:0]
-
 	cache := c.buffer.GetLen(4 * 1024)
-	defer c.buffer.Put(cache)
+	defer func() {
+		c.buffer.Put(buf)
+		c.buffer.Put(cache)
+	}()
+
 	var (
 		total = 0
 		rs    []byte
@@ -316,7 +317,7 @@ func (c *client) do(req *types.Request, rsp *types.Response) error {
 		}
 	}
 
-	err = msgpack.Unmarshal(rs, rsp)
+	err = rsp.Unmarshal(rs)
 	if err != nil {
 		c.log.Error("Unmarshal failed", "err", err, "len", total)
 		return err

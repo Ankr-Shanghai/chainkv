@@ -13,7 +13,7 @@ type Snap struct {
 func (s *Snap) Get(key []byte) ([]byte, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_SNAP_GET,
+			Type: types.REQ_TYPE_SNAP_GET,
 			Id:   s.idx,
 			Key:  key,
 		}
@@ -31,7 +31,7 @@ func (s *Snap) Get(key []byte) ([]byte, error) {
 func (s *Snap) Has(key []byte) (bool, error) {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_SNAP_HAS,
+			Type: types.REQ_TYPE_SNAP_HAS,
 			Id:   s.idx,
 			Key:  key,
 		}
@@ -49,7 +49,7 @@ func (s *Snap) Has(key []byte) (bool, error) {
 func (s *Snap) Release() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_SNAP_RELEASE,
+			Type: types.REQ_TYPE_SNAP_RELEASE,
 			Id:   s.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}

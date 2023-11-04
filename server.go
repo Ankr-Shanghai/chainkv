@@ -12,7 +12,6 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
 	"github.com/panjf2000/gnet/v2"
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 type kvserver struct {
@@ -112,7 +111,7 @@ func (s *kvserver) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.Close
 	}
 	req := &types.Request{}
-	err = msgpack.Unmarshal(data, req)
+	err = req.Unmarshal(data)
 	if err != nil {
 		s.log.Error("OnTraffic unmarshal", "err", err)
 		return
@@ -121,14 +120,12 @@ func (s *kvserver) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	handler, ok := handleOps[req.Type]
 	if !ok {
 		rsp := &types.Response{Code: retcode.ErrNotSupport}
-		data, _ = msgpack.Marshal(rsp)
+		data = rsp.Marshal()
+		c.Write(data)
 		return
 	}
 	rsp := handler(s, req)
-	rs, err := msgpack.Marshal(rsp)
-	if err != nil {
-		s.log.Error("OnTraffic marshal", "err", err)
-	}
+	rs := rsp.Marshal()
 	lst, err := code.Encode(rs)
 	if err != nil {
 		s.log.Error("OnTraffic encode", "err", err)

@@ -15,7 +15,7 @@ type Iterator struct {
 func (i *Iterator) Next() bool {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_NEXT,
+			Type: types.REQ_TYPE_ITER_NEXT,
 			Id:   i.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -32,7 +32,7 @@ func (i *Iterator) Next() bool {
 func (i *Iterator) Key() []byte {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_KEY,
+			Type: types.REQ_TYPE_ITER_KEY,
 			Id:   i.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -49,7 +49,7 @@ func (i *Iterator) Key() []byte {
 func (i *Iterator) Value() []byte {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_VAL,
+			Type: types.REQ_TYPE_ITER_VAL,
 			Id:   i.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -66,7 +66,7 @@ func (i *Iterator) Value() []byte {
 func (i *Iterator) Error() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_ERROR,
+			Type: types.REQ_TYPE_ITER_ERROR,
 			Id:   i.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
@@ -87,7 +87,7 @@ func (i *Iterator) Error() error {
 func (i *Iterator) Close() error {
 	var (
 		req = &types.Request{
-			Type: types.ReqType_REQ_TYPE_ITER_CLOSE,
+			Type: types.REQ_TYPE_ITER_CLOSE,
 			Id:   i.idx,
 		}
 		rsp = &types.Response{Code: retcode.CodeOK}
