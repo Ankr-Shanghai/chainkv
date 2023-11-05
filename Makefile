@@ -1,10 +1,6 @@
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d')
 
-.PHONY: proto
-proto:
-	protoc -I client/pb/ client/pb/*.proto --go_out=.
-	
 .PHONY: build
 build:
 	CGO_ENABLED=0 go build -o ./bin/chainkv -ldflags "-X main.GitCommit=$(GIT_COMMIT) -X main.GitDate=$(GIT_DATE)" .
