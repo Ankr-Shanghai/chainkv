@@ -3,16 +3,14 @@ package types
 import (
 	"testing"
 
+	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRequestMarshalAndUnmarshal(t *testing.T) {
 
 	req := &Request{
-		Type: REQ_TYPE_PUT,
-		Key:  []byte("key"),
-		Val:  []byte("val"),
-		Id:   1,
+		Type: REQ_TYPE_BATCH_NEW,
 	}
 
 	data := req.Marshal()
@@ -47,5 +45,22 @@ func TestResponseMarshalAndUnmarshal(t *testing.T) {
 	assert.Equal(t, rsp.Id, rs.Id)
 	assert.Equal(t, rsp.Val, rs.Val)
 	assert.Equal(t, rsp.Exist, rs.Exist)
+
+	rspOK := &Response{
+		Code: retcode.CodeOK,
+	}
+
+	newdata := rspOK.Marshal()
+	rsOK := &Response{}
+
+	err := rsOK.Unmarshal(newdata)
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, rspOK.Code, rsOK.Code)
+	assert.Equal(t, rspOK.Id, rsOK.Id)
+	assert.Equal(t, rspOK.Val, rsOK.Val)
+	assert.Equal(t, rspOK.Exist, rsOK.Exist)
 
 }
