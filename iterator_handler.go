@@ -19,7 +19,7 @@ func IterNextHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	rsp.Exist = IterNext(kvs, req.Id)
+	rsp.Exist = IterNext(kvs, req.Id.String())
 	return rsp
 }
 
@@ -29,7 +29,7 @@ func IterKeyHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	rsp.Val = IterKey(kvs, req.Id)
+	rsp.Val = IterKey(kvs, req.Id.String())
 	return rsp
 }
 
@@ -39,7 +39,7 @@ func IterValHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	rsp.Val = IterValue(kvs, req.Id)
+	rsp.Val = IterValue(kvs, req.Id.String())
 	return rsp
 }
 
@@ -49,7 +49,7 @@ func IterErrorHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	rsp.Exist = IterError(kvs, req.Id) != nil
+	rsp.Exist = IterError(kvs, req.Id.String()) != nil
 	return rsp
 }
 
@@ -59,6 +59,6 @@ func IterCloseHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	IterClose(kvs, req.Id)
+	IterClose(kvs, req.Id.String())
 	return rsp
 }

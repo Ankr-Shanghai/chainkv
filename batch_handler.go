@@ -19,7 +19,7 @@ func BatchPutHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	BatchPut(kvs, req.Id, req.Key, req.Val)
+	BatchPut(kvs, req.Id.String(), req.Key, req.Val)
 
 	return rsp
 }
@@ -30,7 +30,7 @@ func BatchDelHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	BatchDel(kvs, req.Id, req.Key)
+	BatchDel(kvs, req.Id.String(), req.Key)
 	return rsp
 }
 
@@ -41,7 +41,7 @@ func BatchWriteHandler(kvs *kvserver, req *types.Request) *types.Response {
 		}
 		err error
 	)
-	err = BatchWrite(kvs, req.Id)
+	err = BatchWrite(kvs, req.Id.String())
 	if err != nil {
 		kvs.log.Error("BatchWriteHandler", "err", err)
 		rsp.Code = retcode.ErrBatchWrite
@@ -55,7 +55,7 @@ func BatchResetHandler(kvs *kvserver, req *types.Request) *types.Response {
 			Code: retcode.CodeOK,
 		}
 	)
-	BatchReset(kvs, req.Id)
+	BatchReset(kvs, req.Id.String())
 	return rsp
 }
 
@@ -66,7 +66,7 @@ func BatchCloseHandler(kvs *kvserver, req *types.Request) *types.Response {
 		}
 	)
 
-	BatchClose(kvs, req.Id)
+	BatchClose(kvs, req.Id.String())
 
 	return rsp
 }

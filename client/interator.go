@@ -9,7 +9,7 @@ import (
 
 type Iterator struct {
 	client *client
-	idx    uint32
+	idx    types.ID
 }
 
 func (i *Iterator) Next() bool {
@@ -99,7 +99,7 @@ func (i *Iterator) Close() error {
 	}
 
 	// should remove from iterMap
-	i.client.iterMap.Del(i.idx)
+	i.client.iterMap.Remove(i.idx.String())
 
 	return nil
 }

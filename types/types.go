@@ -11,7 +11,7 @@ type Request struct {
 	Type ReqType
 	Key  []byte
 	Val  []byte
-	Id   uint32
+	Id   ID
 }
 
 func (req *Request) Marshal() []byte {
@@ -21,7 +21,7 @@ func (req *Request) Marshal() []byte {
 	defer pbytes.Put(buf)
 	binary.BigEndian.PutUint32(buf, uint32(req.Type))
 	rs = append(rs, buf...)
-	binary.BigEndian.PutUint32(buf, req.Id)
+	binary.BigEndian.PutUint32(buf, req.Id.UInt32())
 	rs = append(rs, buf...)
 	binary.BigEndian.PutUint32(buf, uint32(keyLen))
 	rs = append(rs, buf...)
@@ -35,7 +35,7 @@ func (req *Request) Unmarshal(data []byte) error {
 		return errors.New("invalid request data")
 	}
 	req.Type = ReqType(binary.BigEndian.Uint32(data[:4]))
-	req.Id = binary.BigEndian.Uint32(data[4:8])
+	req.Id = ID(binary.BigEndian.Uint32(data[4:8]))
 	keyLen := binary.BigEndian.Uint32(data[8:12])
 
 	if len(data) < 12+int(keyLen) {
@@ -58,7 +58,7 @@ func (req *Request) Unmarshal(data []byte) error {
 type Response struct {
 	Code  uint32
 	Val   []byte
-	Id    uint32
+	Id    ID
 	Exist bool
 }
 
@@ -70,7 +70,7 @@ func (rsp *Response) Marshal() []byte {
 	binary.BigEndian.PutUint32(buf, uint32(rsp.Code))
 	rs = append(rs, buf...)
 
-	binary.BigEndian.PutUint32(buf, rsp.Id)
+	binary.BigEndian.PutUint32(buf, rsp.Id.UInt32())
 	rs = append(rs, buf...)
 
 	if rsp.Exist {
@@ -89,7 +89,7 @@ func (rsp *Response) Unmarshal(data []byte) error {
 	}
 
 	rsp.Code = binary.BigEndian.Uint32(data[:4])
-	rsp.Id = binary.BigEndian.Uint32(data[4:8])
+	rsp.Id = ID(binary.BigEndian.Uint32(data[4:8]))
 	if data[8] == 0x01 {
 		rsp.Exist = true
 	}

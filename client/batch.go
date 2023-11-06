@@ -13,7 +13,7 @@ type KeyValue struct {
 
 type Batch struct {
 	client *client
-	idx    uint32
+	idx    types.ID
 	Writes []KeyValue
 	size   int
 }
@@ -34,7 +34,7 @@ func (b *Batch) Close() error {
 	}
 
 	// should remove from batchMap
-	b.client.batchMap.Del(b.idx)
+	b.client.batchMap.Remove(b.idx.String())
 	b.Writes = nil
 
 	return nil

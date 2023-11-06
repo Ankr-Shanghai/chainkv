@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -10,18 +11,18 @@ type Iter struct {
 	iter  *pebble.Iterator
 }
 
-func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
+func NewIter(kvs *kvserver, prefix, start []byte) types.ID {
 	kvs.iterLock.Lock()
 	defer kvs.iterLock.Unlock()
 
 	kvs.iterIdx++
-	idx := kvs.iterIdx
+	idx := types.ID(kvs.iterIdx)
 	iter, _ := kvs.db.NewIter(&pebble.IterOptions{
 		LowerBound: append(prefix, start...),
 		UpperBound: upperBound(prefix),
 	})
 
-	kvs.iterCache.Set(idx, &Iter{
+	kvs.iterCache.Set(idx.String(), &Iter{
 		first: true,
 		iter:  iter,
 	})
@@ -29,7 +30,7 @@ func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
 	return idx
 }
 
-func IterNext(kvs *kvserver, idx uint32) bool {
+func IterNext(kvs *kvserver, idx string) bool {
 
 	iter, _ := kvs.iterCache.Get(idx)
 	if iter.first {
@@ -39,23 +40,23 @@ func IterNext(kvs *kvserver, idx uint32) bool {
 	return iter.iter.Next()
 }
 
-func IterKey(kvs *kvserver, idx uint32) []byte {
+func IterKey(kvs *kvserver, idx string) []byte {
 	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Key()
 }
 
-func IterValue(kvs *kvserver, idx uint32) []byte {
+func IterValue(kvs *kvserver, idx string) []byte {
 	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Value()
 }
 
-func IterClose(kvs *kvserver, idx uint32) {
+func IterClose(kvs *kvserver, idx string) {
 	iter, _ := kvs.iterCache.Get(idx)
 	iter.iter.Close()
-	kvs.iterCache.Del(idx)
+	kvs.iterCache.Remove(idx)
 }
 
-func IterError(kvs *kvserver, idx uint32) error {
+func IterError(kvs *kvserver, idx string) error {
 	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Error()
 }

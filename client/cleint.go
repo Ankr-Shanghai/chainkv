@@ -11,8 +11,8 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
-	"github.com/cornelk/hashmap"
 	"github.com/gobwas/pool/pbytes"
+	cmap "github.com/orcaman/concurrent-map/v2"
 )
 
 type client struct {
@@ -23,13 +23,13 @@ type client struct {
 	codec  *codec.Codec
 
 	// batchMap is used to store the batch object
-	batchMap *hashmap.Map[uint32, *Batch]
+	batchMap cmap.ConcurrentMap[string, *Batch]
 
 	// itermap is used to store the iterator object
-	iterMap *hashmap.Map[uint32, *Iterator]
+	iterMap cmap.ConcurrentMap[string, *Iterator]
 
 	// snapMap is used to store the snap object
-	snapMap *hashmap.Map[uint32, *Snap]
+	snapMap cmap.ConcurrentMap[string, *Snap]
 }
 
 type Option struct {
@@ -59,9 +59,9 @@ func NewClient(opt *Option) (*client, error) {
 		pool:     p,
 		log:      logger,
 		buffer:   buffer,
-		batchMap: hashmap.New[uint32, *Batch](),
-		iterMap:  hashmap.New[uint32, *Iterator](),
-		snapMap:  hashmap.New[uint32, *Snap](),
+		batchMap: cmap.New[*Batch](),
+		iterMap:  cmap.New[*Iterator](),
+		snapMap:  cmap.New[*Snap](),
 		codec:    &codec.Codec{},
 	}, nil
 }
@@ -101,7 +101,7 @@ func (c *client) NewSnap() (*Snap, error) {
 		idx:    rsp.Id,
 	}
 
-	c.snapMap.Set(rsp.Id, snap)
+	c.snapMap.Set(rsp.Id.String(), snap)
 
 	return snap, nil
 }
@@ -127,7 +127,7 @@ func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 		idx:    rsp.Id,
 	}
 
-	c.iterMap.Set(rsp.Id, iter)
+	c.iterMap.Set(rsp.Id.String(), iter)
 
 	return iter, nil
 }
@@ -151,7 +151,7 @@ func (c *client) NewBatch() (*Batch, error) {
 		Writes: make([]KeyValue, 0),
 	}
 
-	c.batchMap.Set(rsp.Id, batch)
+	c.batchMap.Set(rsp.Id.String(), batch)
 
 	return batch, nil
 }
@@ -159,21 +159,18 @@ func (c *client) NewBatch() (*Batch, error) {
 func (c *client) Close() error {
 
 	// close all batch
-	c.batchMap.Range(func(key uint32, value *Batch) bool {
+	c.batchMap.IterCb(func(key string, value *Batch) {
 		value.Close()
-		return true
 	})
 
 	// close all iterator
-	c.iterMap.Range(func(key uint32, value *Iterator) bool {
+	c.iterMap.IterCb(func(key string, value *Iterator) {
 		value.Close()
-		return true
 	})
 
 	// close all snap
-	c.snapMap.Range(func(key uint32, value *Snap) bool {
+	c.snapMap.IterCb(func(key string, value *Snap) {
 		value.Release()
-		return true
 	})
 
 	err := c.flush()

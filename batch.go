@@ -1,39 +1,43 @@
 package main
 
-func NewBatch(kvs *kvserver) uint32 {
+import (
+	"github.com/Ankr-Shanghai/chainkv/types"
+)
+
+func NewBatch(kvs *kvserver) types.ID {
 	kvs.batchLock.Lock()
 	defer kvs.batchLock.Unlock()
 
 	kvs.batchIdx++
-	idx := kvs.batchIdx
+	idx := types.ID(kvs.batchIdx)
 
-	kvs.batchCache.Set(idx, kvs.db.NewBatch())
+	kvs.batchCache.Set(idx.String(), kvs.db.NewBatch())
 
 	return idx
 }
 
-func BatchReset(kvs *kvserver, idx uint32) {
+func BatchReset(kvs *kvserver, idx string) {
 	batch, _ := kvs.batchCache.Get(idx)
 	batch.Reset()
 }
 
-func BatchWrite(kvs *kvserver, idx uint32) error {
+func BatchWrite(kvs *kvserver, idx string) error {
 	batch, _ := kvs.batchCache.Get(idx)
 	return batch.Commit(kvs.wo)
 }
 
-func BatchPut(kvs *kvserver, idx uint32, key, val []byte) {
+func BatchPut(kvs *kvserver, idx string, key, val []byte) {
 	batch, _ := kvs.batchCache.Get(idx)
 	batch.Set(key, val, kvs.wo)
 }
 
-func BatchDel(kvs *kvserver, idx uint32, key []byte) {
+func BatchDel(kvs *kvserver, idx string, key []byte) {
 	batch, _ := kvs.batchCache.Get(idx)
 	batch.Delete(key, kvs.wo)
 }
 
-func BatchClose(kvs *kvserver, idx uint32) {
+func BatchClose(kvs *kvserver, idx string) {
 	batch, _ := kvs.batchCache.Get(idx)
+	kvs.batchCache.Remove(idx)
 	batch.Close()
-	kvs.batchCache.Del(idx)
 }

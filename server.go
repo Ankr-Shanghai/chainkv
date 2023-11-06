@@ -11,7 +11,7 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
-	"github.com/cornelk/hashmap"
+	cmap "github.com/orcaman/concurrent-map/v2"
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -24,17 +24,17 @@ type kvserver struct {
 	db *pebble.DB
 	wo *pebble.WriteOptions
 
-	batchLock  sync.RWMutex
+	batchLock  sync.Mutex
 	batchIdx   uint32
-	batchCache *hashmap.Map[uint32, *pebble.Batch]
+	batchCache cmap.ConcurrentMap[string, *pebble.Batch]
 
-	iterLock  sync.RWMutex
+	iterLock  sync.Mutex
 	iterIdx   uint32
-	iterCache *hashmap.Map[uint32, *Iter]
+	iterCache cmap.ConcurrentMap[string, *Iter]
 
-	snapLock  sync.RWMutex
+	snapLock  sync.Mutex
 	snapIdx   uint32
-	snapCache *hashmap.Map[uint32, *pebble.Snapshot]
+	snapCache cmap.ConcurrentMap[string, *pebble.Snapshot]
 }
 
 func NewServer(host, port, datadir string) (*kvserver, error) {
@@ -44,9 +44,9 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
-		batchCache: hashmap.New[uint32, *pebble.Batch](),
-		iterCache:  hashmap.New[uint32, *Iter](),
-		snapCache:  hashmap.New[uint32, *pebble.Snapshot](),
+		batchCache: cmap.New[*pebble.Batch](),
+		iterCache:  cmap.New[*Iter](),
+		snapCache:  cmap.New[*pebble.Snapshot](),
 		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
 	}
 
@@ -69,19 +69,16 @@ func (s *kvserver) Stop(ctx context.Context) {
 func (s *kvserver) OnShutdown(c gnet.Engine) {
 	s.log.Info("server shutdown and clean all resources...")
 
-	s.iterCache.Range(func(key uint32, value *Iter) bool {
+	s.iterCache.IterCb(func(key string, value *Iter) {
 		value.iter.Close()
-		return true
 	})
 
-	s.batchCache.Range(func(key uint32, value *pebble.Batch) bool {
+	s.batchCache.IterCb(func(key string, value *pebble.Batch) {
 		value.Close()
-		return true
 	})
 
-	s.snapCache.Range(func(key uint32, value *pebble.Snapshot) bool {
+	s.snapCache.IterCb(func(key string, value *pebble.Snapshot) {
 		value.Close()
-		return true
 	})
 
 	err := s.db.Close()

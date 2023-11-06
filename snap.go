@@ -7,14 +7,14 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/types"
 )
 
-func NewSnap(kvs *kvserver) uint32 {
+func NewSnap(kvs *kvserver) types.ID {
 	kvs.snapLock.Lock()
 	defer kvs.snapLock.Unlock()
 
 	kvs.snapIdx++
-	idx := kvs.snapIdx
+	idx := types.ID(kvs.snapIdx)
 	snap := kvs.db.NewSnapshot()
-	kvs.snapCache.Set(idx, snap)
+	kvs.snapCache.Set(idx.String(), snap)
 
 	return idx
 }
@@ -28,8 +28,6 @@ func NewSnapHandler(kvs *kvserver, req *types.Request) *types.Response {
 }
 
 func SnapGetHandler(kvs *kvserver, req *types.Request) *types.Response {
-	kvs.snapLock.RLock()
-	defer kvs.snapLock.RUnlock()
 
 	var (
 		rsp = &types.Response{
@@ -39,7 +37,7 @@ func SnapGetHandler(kvs *kvserver, req *types.Request) *types.Response {
 		err    error
 	)
 
-	snap, _ := kvs.snapCache.Get(req.Id)
+	snap, _ := kvs.snapCache.Get(req.Id.String())
 	rsp.Val, closer, err = snap.Get(req.Key)
 	if err != nil {
 		kvs.log.Error("SnapGetHandler", "err", err)
@@ -62,7 +60,7 @@ func SnapHasHandler(kvs *kvserver, req *types.Request) *types.Response {
 		err    error
 	)
 
-	snap, _ := kvs.snapCache.Get(req.Id)
+	snap, _ := kvs.snapCache.Get(req.Id.String())
 	_, closer, err = snap.Get(req.Key)
 	if err != nil {
 		rsp.Exist = false
@@ -83,9 +81,9 @@ func SnapReleaseHandler(kvs *kvserver, req *types.Request) *types.Response {
 		}
 	)
 
-	snap, _ := kvs.snapCache.Get(req.Id)
+	snap, _ := kvs.snapCache.Get(req.Id.String())
+	kvs.snapCache.Remove(req.Id.String())
 	snap.Close()
-	kvs.snapCache.Del(req.Id)
 
 	return rsp
 }

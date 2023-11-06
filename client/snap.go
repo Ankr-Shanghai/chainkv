@@ -7,7 +7,7 @@ import (
 
 type Snap struct {
 	client *client
-	idx    uint32
+	idx    types.ID
 }
 
 func (s *Snap) Get(key []byte) ([]byte, error) {
@@ -60,7 +60,7 @@ func (s *Snap) Release() error {
 		return err
 	}
 
-	s.client.snapMap.Del(s.idx)
+	s.client.snapMap.Remove(s.idx.String())
 
 	return nil
 }
