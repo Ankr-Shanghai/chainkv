@@ -34,9 +34,8 @@ func (b *Batch) Close() error {
 	}
 
 	// should remove from batchMap
-	b.client.batchLock.Lock()
-	delete(b.client.batchMap, b.idx)
-	b.client.batchLock.Unlock()
+	b.client.batchMap.Del(b.idx)
+	b.Writes = nil
 
 	return nil
 }

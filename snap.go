@@ -14,7 +14,7 @@ func NewSnap(kvs *kvserver) uint32 {
 	kvs.snapIdx++
 	idx := kvs.snapIdx
 	snap := kvs.db.NewSnapshot()
-	kvs.snapCache[idx] = snap
+	kvs.snapCache.Set(idx, snap)
 
 	return idx
 }
@@ -39,7 +39,8 @@ func SnapGetHandler(kvs *kvserver, req *types.Request) *types.Response {
 		err    error
 	)
 
-	rsp.Val, closer, err = kvs.snapCache[req.Id].Get(req.Key)
+	snap, _ := kvs.snapCache.Get(req.Id)
+	rsp.Val, closer, err = snap.Get(req.Key)
 	if err != nil {
 		kvs.log.Error("SnapGetHandler", "err", err)
 		rsp.Code = retcode.ErrGet
@@ -61,7 +62,8 @@ func SnapHasHandler(kvs *kvserver, req *types.Request) *types.Response {
 		err    error
 	)
 
-	_, closer, err = kvs.snapCache[req.Id].Get(req.Key)
+	snap, _ := kvs.snapCache.Get(req.Id)
+	_, closer, err = snap.Get(req.Key)
 	if err != nil {
 		rsp.Exist = false
 		rsp.Code = retcode.ErrGet
@@ -81,10 +83,9 @@ func SnapReleaseHandler(kvs *kvserver, req *types.Request) *types.Response {
 		}
 	)
 
-	kvs.snapLock.Lock()
-	defer kvs.snapLock.Unlock()
-	kvs.snapCache[req.Id].Close()
-	delete(kvs.snapCache, req.Id)
+	snap, _ := kvs.snapCache.Get(req.Id)
+	snap.Close()
+	kvs.snapCache.Del(req.Id)
 
 	return rsp
 }

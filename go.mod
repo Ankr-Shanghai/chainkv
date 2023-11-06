@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/cockroachdb/pebble v0.0.0-20231101195458-481da04154d6
+	github.com/cornelk/hashmap v1.0.8
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/gobwas/pool v0.2.0
 	github.com/panjf2000/gnet/v2 v2.3.3

@@ -11,6 +11,7 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
+	"github.com/cornelk/hashmap"
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -25,15 +26,15 @@ type kvserver struct {
 
 	batchLock  sync.RWMutex
 	batchIdx   uint32
-	batchCache map[uint32]*pebble.Batch
+	batchCache *hashmap.Map[uint32, *pebble.Batch]
 
 	iterLock  sync.RWMutex
 	iterIdx   uint32
-	iterCache map[uint32]*Iter
+	iterCache *hashmap.Map[uint32, *Iter]
 
 	snapLock  sync.RWMutex
 	snapIdx   uint32
-	snapCache map[uint32]*pebble.Snapshot
+	snapCache *hashmap.Map[uint32, *pebble.Snapshot]
 }
 
 func NewServer(host, port, datadir string) (*kvserver, error) {
@@ -43,9 +44,9 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
-		batchCache: make(map[uint32]*pebble.Batch),
-		iterCache:  make(map[uint32]*Iter),
-		snapCache:  make(map[uint32]*pebble.Snapshot),
+		batchCache: hashmap.New[uint32, *pebble.Batch](),
+		iterCache:  hashmap.New[uint32, *Iter](),
+		snapCache:  hashmap.New[uint32, *pebble.Snapshot](),
 		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
 	}
 
@@ -67,17 +68,21 @@ func (s *kvserver) Stop(ctx context.Context) {
 
 func (s *kvserver) OnShutdown(c gnet.Engine) {
 	s.log.Info("server shutdown and clean all resources...")
-	for _, iter := range s.iterCache {
-		iter.iter.Close()
-	}
 
-	for _, snap := range s.snapCache {
-		snap.Close()
-	}
+	s.iterCache.Range(func(key uint32, value *Iter) bool {
+		value.iter.Close()
+		return true
+	})
 
-	for _, batch := range s.batchCache {
-		batch.Close()
-	}
+	s.batchCache.Range(func(key uint32, value *pebble.Batch) bool {
+		value.Close()
+		return true
+	})
+
+	s.snapCache.Range(func(key uint32, value *pebble.Snapshot) bool {
+		value.Close()
+		return true
+	})
 
 	err := s.db.Close()
 	if err != nil {

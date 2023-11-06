@@ -99,9 +99,7 @@ func (i *Iterator) Close() error {
 	}
 
 	// should remove from iterMap
-	i.client.iterLock.Lock()
-	delete(i.client.iterMap, i.idx)
-	i.client.iterLock.Unlock()
+	i.client.iterMap.Del(i.idx)
 
 	return nil
 }

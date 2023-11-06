@@ -21,55 +21,42 @@ func NewIter(kvs *kvserver, prefix, start []byte) uint32 {
 		UpperBound: upperBound(prefix),
 	})
 
-	kvs.iterCache[idx] = &Iter{
+	kvs.iterCache.Set(idx, &Iter{
 		first: true,
 		iter:  iter,
-	}
+	})
 
 	return idx
 }
 
 func IterNext(kvs *kvserver, idx uint32) bool {
-	kvs.iterLock.RLock()
-	defer kvs.iterLock.RUnlock()
 
-	if kvs.iterCache[idx].first {
-		kvs.iterCache[idx].first = false
-		return kvs.iterCache[idx].iter.First()
+	iter, _ := kvs.iterCache.Get(idx)
+	if iter.first {
+		iter.first = false
+		return iter.iter.First()
 	}
-	return kvs.iterCache[idx].iter.Next()
+	return iter.iter.Next()
 }
 
 func IterKey(kvs *kvserver, idx uint32) []byte {
-	kvs.iterLock.RLock()
-	defer kvs.iterLock.RUnlock()
-
-	iter := kvs.iterCache[idx]
+	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Key()
 }
 
 func IterValue(kvs *kvserver, idx uint32) []byte {
-	kvs.iterLock.RLock()
-	defer kvs.iterLock.RUnlock()
-
-	iter := kvs.iterCache[idx]
+	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Value()
 }
 
 func IterClose(kvs *kvserver, idx uint32) {
-	kvs.iterLock.Lock()
-	defer kvs.iterLock.Unlock()
-
-	iter := kvs.iterCache[idx]
+	iter, _ := kvs.iterCache.Get(idx)
 	iter.iter.Close()
-	delete(kvs.iterCache, idx)
+	kvs.iterCache.Del(idx)
 }
 
 func IterError(kvs *kvserver, idx uint32) error {
-	kvs.iterLock.RLock()
-	defer kvs.iterLock.RUnlock()
-
-	iter := kvs.iterCache[idx]
+	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Error()
 }
 

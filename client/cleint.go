@@ -6,12 +6,12 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"sync"
 
 	"github.com/Ankr-Shanghai/chainkv/client/pool"
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
+	"github.com/cornelk/hashmap"
 	"github.com/gobwas/pool/pbytes"
 )
 
@@ -23,16 +23,13 @@ type client struct {
 	codec  *codec.Codec
 
 	// batchMap is used to store the batch object
-	batchLock sync.Mutex
-	batchMap  map[uint32]*Batch
+	batchMap *hashmap.Map[uint32, *Batch]
 
 	// itermap is used to store the iterator object
-	iterLock sync.Mutex
-	iterMap  map[uint32]*Iterator
+	iterMap *hashmap.Map[uint32, *Iterator]
 
 	// snapMap is used to store the snap object
-	snapLock sync.Mutex
-	snapMap  map[uint32]*Snap
+	snapMap *hashmap.Map[uint32, *Snap]
 }
 
 type Option struct {
@@ -62,9 +59,9 @@ func NewClient(opt *Option) (*client, error) {
 		pool:     p,
 		log:      logger,
 		buffer:   buffer,
-		batchMap: make(map[uint32]*Batch),
-		iterMap:  make(map[uint32]*Iterator),
-		snapMap:  make(map[uint32]*Snap),
+		batchMap: hashmap.New[uint32, *Batch](),
+		iterMap:  hashmap.New[uint32, *Iterator](),
+		snapMap:  hashmap.New[uint32, *Snap](),
 		codec:    &codec.Codec{},
 	}, nil
 }
@@ -104,9 +101,7 @@ func (c *client) NewSnap() (*Snap, error) {
 		idx:    rsp.Id,
 	}
 
-	c.snapLock.Lock()
-	c.snapMap[rsp.Id] = snap
-	c.snapLock.Unlock()
+	c.snapMap.Set(rsp.Id, snap)
 
 	return snap, nil
 }
@@ -132,9 +127,7 @@ func (c *client) NewIter(prefix, start []byte) (*Iterator, error) {
 		idx:    rsp.Id,
 	}
 
-	c.iterLock.Lock()
-	c.iterMap[rsp.Id] = iter
-	c.iterLock.Unlock()
+	c.iterMap.Set(rsp.Id, iter)
 
 	return iter, nil
 }
@@ -158,9 +151,7 @@ func (c *client) NewBatch() (*Batch, error) {
 		Writes: make([]KeyValue, 0),
 	}
 
-	c.batchLock.Lock()
-	c.batchMap[rsp.Id] = batch
-	c.batchLock.Unlock()
+	c.batchMap.Set(rsp.Id, batch)
 
 	return batch, nil
 }
@@ -168,17 +159,22 @@ func (c *client) NewBatch() (*Batch, error) {
 func (c *client) Close() error {
 
 	// close all batch
-	for _, batch := range c.batchMap {
-		batch.Close()
-	}
+	c.batchMap.Range(func(key uint32, value *Batch) bool {
+		value.Close()
+		return true
+	})
+
 	// close all iterator
-	for _, iter := range c.iterMap {
-		iter.Close()
-	}
+	c.iterMap.Range(func(key uint32, value *Iterator) bool {
+		value.Close()
+		return true
+	})
+
 	// close all snap
-	for _, snap := range c.snapMap {
-		snap.Release()
-	}
+	c.snapMap.Range(func(key uint32, value *Snap) bool {
+		value.Release()
+		return true
+	})
 
 	err := c.flush()
 	if err != nil {

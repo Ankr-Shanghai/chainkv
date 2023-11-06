@@ -60,9 +60,7 @@ func (s *Snap) Release() error {
 		return err
 	}
 
-	s.client.snapLock.Lock()
-	delete(s.client.snapMap, s.idx)
-	s.client.snapLock.Unlock()
+	s.client.snapMap.Del(s.idx)
 
 	return nil
 }
