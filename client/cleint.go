@@ -161,7 +161,9 @@ func (c *client) Close() error {
 	// close all batch
 	c.log.Info("client close", "batch count: ", c.batchMap.Count())
 	c.batchMap.IterCb(func(key string, value *Batch) {
+		println("1")
 		value.Close()
+		println("2")
 	})
 
 	// close all iterator

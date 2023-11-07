@@ -42,4 +42,26 @@ func main() {
 	}
 	fmt.Printf("key1: %s\n", val)
 
+	batch1, err := client.NewBatch()
+	if err != nil {
+		panic(err)
+	}
+	defer batch1.Close()
+
+	batch1.Put([]byte("key1"), []byte("value1"))
+	batch1.Put([]byte("key2"), []byte("value2"))
+	batch1.Put([]byte("key3"), []byte("value3"))
+	batch1.Put([]byte("key4"), []byte("value4"))
+
+	err = batch1.Write()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err = client.Get([]byte("key1"))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("key1: %s\n", val)
+
 }
