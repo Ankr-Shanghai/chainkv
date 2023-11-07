@@ -55,7 +55,7 @@ func kvact(ctx *cli.Context) error {
 	ctxHandler, gs := grace.New(context.Background())
 
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println(http.ListenAndServe("localhost:26060", nil))
 	}()
 
 	gs.Register(func() error {
