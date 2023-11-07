@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cockroachdb/pebble"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 type kvserver struct {
@@ -126,6 +128,7 @@ func (s *kvserver) OnShutdown(c gnet.Engine) {
 func (s *kvserver) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	s.log.Info("server booting ...", "addr", s.addr)
 	s.eng = eng
+	debug.SetMemoryLimit(24 * opt.GiB)
 	return
 }
 
