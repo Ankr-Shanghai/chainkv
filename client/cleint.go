@@ -160,23 +160,21 @@ func (c *client) Close() error {
 
 	// close all batch
 	c.log.Info("client close", "batch count: ", c.batchMap.Count())
-	c.batchMap.IterCb(func(key string, value *Batch) {
-		println("1")
-		value.Close()
-		println("2")
-	})
+	for _, val := range c.batchMap.Items() {
+		val.Close()
+	}
 
 	// close all iterator
 	c.log.Info("client close", "iter count: ", c.iterMap.Count())
-	c.iterMap.IterCb(func(key string, value *Iterator) {
-		value.Close()
-	})
+	for _, val := range c.iterMap.Items() {
+		val.Close()
+	}
 
 	// close all snap
 	c.log.Info("snap close", "iter count: ", c.snapMap.Count())
-	c.snapMap.IterCb(func(key string, value *Snap) {
-		value.Release()
-	})
+	for _, val := range c.snapMap.Items() {
+		val.Release()
+	}
 
 	err := c.flush()
 	if err != nil {
