@@ -3,11 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
-
-	"net/http"
-	_ "net/http/pprof"
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/sunvim/utils/grace"
@@ -53,10 +49,6 @@ func kvact(ctx *cli.Context) error {
 	}
 
 	ctxHandler, gs := grace.New(context.Background())
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:26060", nil))
-	}()
 
 	gs.Register(func() error {
 		srv.Stop(ctxHandler)
