@@ -52,8 +52,10 @@ func IterValue(kvs *kvserver, idx string) []byte {
 
 func IterClose(kvs *kvserver, idx string) {
 	iter, _ := kvs.iterCache.Get(idx)
-	iter.iter.Close()
-	kvs.iterCache.Remove(idx)
+	kvs.closer <- func() {
+		iter.iter.Close()
+		kvs.iterCache.Remove(idx)
+	}
 }
 
 func IterError(kvs *kvserver, idx string) error {

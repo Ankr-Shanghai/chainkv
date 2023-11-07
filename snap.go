@@ -82,8 +82,11 @@ func SnapReleaseHandler(kvs *kvserver, req *types.Request) *types.Response {
 	)
 
 	snap, _ := kvs.snapCache.Get(req.Id.String())
-	kvs.snapCache.Remove(req.Id.String())
-	snap.Close()
+
+	kvs.closer <- func() {
+		kvs.snapCache.Remove(req.Id.String())
+		snap.Close()
+	}
 
 	return rsp
 }

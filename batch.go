@@ -38,6 +38,8 @@ func BatchDel(kvs *kvserver, idx string, key []byte) {
 
 func BatchClose(kvs *kvserver, idx string) {
 	batch, _ := kvs.batchCache.Get(idx)
-	kvs.batchCache.Remove(idx)
-	batch.Close()
+	kvs.closer <- func() {
+		batch.Close()
+		kvs.batchCache.Remove(idx)
+	}
 }

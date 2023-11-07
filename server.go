@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/Ankr-Shanghai/chainkv/codec"
 	"github.com/Ankr-Shanghai/chainkv/retcode"
@@ -35,11 +36,18 @@ type kvserver struct {
 	snapLock  sync.Mutex
 	snapIdx   uint32
 	snapCache cmap.ConcurrentMap[string, *pebble.Snapshot]
+
+	closer     chan func()
+	closeEvent chan struct{}
 }
 
 func NewServer(host, port, datadir string) (*kvserver, error) {
 
-	var err error
+	var (
+		err  error
+		size = 2048
+	)
+
 	s := &kvserver{
 		log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
@@ -48,6 +56,7 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		iterCache:  cmap.New[*Iter](),
 		snapCache:  cmap.New[*pebble.Snapshot](),
 		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
+		closer:     make(chan func(), size),
 	}
 
 	s.wo = pebble.Sync
@@ -59,7 +68,30 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 	}
 	s.db = db
 
+	// start the flushdb goroutine
+	go s.flushdb()
+
+	// start the handleCloser goroutine
+	go s.handleCloser()
+
 	return s, nil
+}
+
+func (s *kvserver) flushdb() {
+	ticker := time.Tick(time.Minute)
+	for range ticker {
+		err := s.db.Flush()
+		if err != nil {
+			s.log.Error("flushdb", "err", err)
+		}
+	}
+}
+
+func (s *kvserver) handleCloser() {
+	for fn := range s.closer {
+		fn()
+	}
+	s.closeEvent <- struct{}{}
 }
 
 func (s *kvserver) Stop(ctx context.Context) {
@@ -68,6 +100,8 @@ func (s *kvserver) Stop(ctx context.Context) {
 
 func (s *kvserver) OnShutdown(c gnet.Engine) {
 	s.log.Info("server shutdown and clean all resources...")
+	close(s.closer)
+	<-s.closeEvent
 
 	s.iterCache.IterCb(func(key string, value *Iter) {
 		value.iter.Close()

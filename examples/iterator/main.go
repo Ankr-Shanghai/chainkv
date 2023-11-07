@@ -23,6 +23,7 @@ func main() {
 	defer cli.Close()
 
 	iter, _ := cli.NewIter(nil, nil)
+	defer iter.Close()
 
 	fmt.Printf("iter is %v\n", iter.Next())
 

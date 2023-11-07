@@ -159,16 +159,19 @@ func (c *client) NewBatch() (*Batch, error) {
 func (c *client) Close() error {
 
 	// close all batch
+	c.log.Info("client close", "batch count: ", c.batchMap.Count())
 	c.batchMap.IterCb(func(key string, value *Batch) {
 		value.Close()
 	})
 
 	// close all iterator
+	c.log.Info("client close", "iter count: ", c.iterMap.Count())
 	c.iterMap.IterCb(func(key string, value *Iterator) {
 		value.Close()
 	})
 
 	// close all snap
+	c.log.Info("snap close", "iter count: ", c.snapMap.Count())
 	c.snapMap.IterCb(func(key string, value *Snap) {
 		value.Release()
 	})
@@ -177,6 +180,7 @@ func (c *client) Close() error {
 	if err != nil {
 		return err
 	}
+	c.log.Info("client close flush")
 
 	// must be close last
 	c.pool.Close()
