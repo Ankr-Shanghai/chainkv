@@ -18,7 +18,9 @@ func NewBatch(kvs *kvserver) types.ID {
 
 func BatchReset(kvs *kvserver, idx string) {
 	batch, _ := kvs.batchCache.Get(idx)
-	batch.Reset()
+	batch.Close()
+	nb := kvs.db.NewBatch()
+	kvs.batchCache.Set(idx, nb)
 }
 
 func BatchWrite(kvs *kvserver, idx string) error {

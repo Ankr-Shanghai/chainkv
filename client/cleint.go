@@ -52,7 +52,7 @@ func NewClient(opt *Option) (*client, error) {
 		return nil, err
 	}
 
-	buffer := pbytes.New(128, 1024*1024*64)
+	buffer := pbytes.New(128, 64*1024*1024)
 
 	return &client{
 		src:      src,
