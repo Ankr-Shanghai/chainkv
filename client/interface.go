@@ -9,4 +9,5 @@ type Client interface {
 	NewBatch() (*Batch, error)
 	NewIter(start, end []byte) (*Iterator, error)
 	NewSnap() (*Snap, error)
+	Sequence() (uint64, error)
 }

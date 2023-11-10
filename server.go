@@ -13,6 +13,7 @@ import (
 	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
+	"github.com/gobwas/pool/pbytes"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -24,8 +25,11 @@ type kvserver struct {
 	log  *slog.Logger
 	addr string
 
-	db *pebble.DB
-	wo *pebble.WriteOptions
+	db       *pebble.DB
+	wo       *pebble.WriteOptions
+	seqLock  sync.Mutex
+	sequence uint64
+	buffer   *pbytes.Pool
 
 	batchLock  sync.Mutex
 	batchIdx   uint32
@@ -59,6 +63,8 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		snapCache:  cmap.New[*pebble.Snapshot](),
 		addr:       fmt.Sprintf("tcp://%s:%s", host, port),
 		closer:     make(chan func(), size),
+		buffer:     pbytes.New(8, 4*1024), // 4k
+		closeEvent: make(chan struct{}),
 	}
 
 	s.wo = pebble.Sync
@@ -69,6 +75,9 @@ func NewServer(host, port, datadir string) (*kvserver, error) {
 		return nil, err
 	}
 	s.db = db
+
+	// init system
+	initSystem(s)
 
 	// start the flushdb goroutine
 	go s.flushdb()
@@ -90,38 +99,43 @@ func (s *kvserver) flushdb() {
 }
 
 func (s *kvserver) handleCloser() {
+
 	for fn := range s.closer {
 		fn()
 	}
 	s.closeEvent <- struct{}{}
+	s.log.Info("handleCloser exit")
 }
 
 func (s *kvserver) Stop(ctx context.Context) {
-	s.eng.Stop(ctx)
-}
-
-func (s *kvserver) OnShutdown(c gnet.Engine) {
 	s.log.Info("server shutdown and clean all resources...")
 	close(s.closer)
 	<-s.closeEvent
 
-	s.iterCache.IterCb(func(key string, value *Iter) {
-		value.iter.Close()
-	})
+	cleanSystem(s)
+	for _, v := range s.iterCache.Items() {
+		v.iter.Close()
+	}
 
-	s.batchCache.IterCb(func(key string, value *pebble.Batch) {
-		value.Close()
-	})
+	for _, v := range s.batchCache.Items() {
+		v.Close()
+	}
 
-	s.snapCache.IterCb(func(key string, value *pebble.Snapshot) {
-		value.Close()
-	})
+	for _, v := range s.snapCache.Items() {
+		v.Close()
+	}
 
 	err := s.db.Close()
 	if err != nil {
 		s.log.Error("kvserver stop", "err", err)
 	}
 
+	s.log.Info("server shutdown success")
+
+	s.eng.Stop(ctx)
+}
+
+func (s *kvserver) OnShutdown(c gnet.Engine) {
 	return
 }
 

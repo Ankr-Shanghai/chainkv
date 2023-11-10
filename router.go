@@ -32,5 +32,7 @@ var (
 		types.REQ_TYPE_SNAP_HAS:     SnapHasHandler,
 		types.REQ_TYPE_SNAP_GET:     SnapGetHandler,
 		types.REQ_TYPE_SNAP_RELEASE: SnapReleaseHandler,
+		// sequence
+		types.REQ_TYPE_SEQ_GET: GetSequenceHandler,
 	}
 )

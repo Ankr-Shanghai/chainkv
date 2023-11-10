@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Ankr-Shanghai/chainkv/retcode"
 	"github.com/Ankr-Shanghai/chainkv/types"
 	"github.com/cockroachdb/pebble"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -9,6 +10,14 @@ import (
 type Iter struct {
 	first bool
 	iter  *pebble.Iterator
+}
+
+func NewIteratorHandler(kvs *kvserver, req *types.Request) *types.Response {
+	rsp := &types.Response{
+		Code: retcode.CodeOK,
+	}
+	rsp.Id = NewIter(kvs, req.Key, req.Val)
+	return rsp
 }
 
 func NewIter(kvs *kvserver, prefix, start []byte) types.ID {
@@ -30,6 +39,16 @@ func NewIter(kvs *kvserver, prefix, start []byte) types.ID {
 	return idx
 }
 
+func IterNextHandler(kvs *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+	rsp.Exist = IterNext(kvs, req.Id.String())
+	return rsp
+}
+
 func IterNext(kvs *kvserver, idx string) bool {
 
 	iter, _ := kvs.iterCache.Get(idx)
@@ -40,14 +59,44 @@ func IterNext(kvs *kvserver, idx string) bool {
 	return iter.iter.Next()
 }
 
+func IterKeyHandler(kvs *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+	rsp.Val = IterKey(kvs, req.Id.String())
+	return rsp
+}
+
 func IterKey(kvs *kvserver, idx string) []byte {
 	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Key()
 }
 
+func IterValHandler(kvs *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+	rsp.Val = IterValue(kvs, req.Id.String())
+	return rsp
+}
+
 func IterValue(kvs *kvserver, idx string) []byte {
 	iter, _ := kvs.iterCache.Get(idx)
 	return iter.iter.Value()
+}
+
+func IterCloseHandler(kvs *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+	IterClose(kvs, req.Id.String())
+	return rsp
 }
 
 func IterClose(kvs *kvserver, idx string) {
@@ -56,6 +105,16 @@ func IterClose(kvs *kvserver, idx string) {
 		iter.iter.Close()
 		kvs.iterCache.Remove(idx)
 	}
+}
+
+func IterErrorHandler(kvs *kvserver, req *types.Request) *types.Response {
+	var (
+		rsp = &types.Response{
+			Code: retcode.CodeOK,
+		}
+	)
+	rsp.Exist = IterError(kvs, req.Id.String()) != nil
+	return rsp
 }
 
 func IterError(kvs *kvserver, idx string) error {

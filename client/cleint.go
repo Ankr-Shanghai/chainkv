@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -80,6 +81,23 @@ func (c *client) flush() error {
 		return err
 	}
 	return nil
+}
+
+func (c client) Sequence() (uint64, error) {
+	var (
+		req = &types.Request{
+			Type: types.REQ_TYPE_SEQ_GET,
+		}
+		rsp = &types.Response{Code: retcode.CodeOK}
+		err error
+	)
+
+	err = c.do(req, rsp)
+	if err != nil {
+		return 0, errors.New("get sequence failed")
+	}
+
+	return binary.BigEndian.Uint64(rsp.Val), nil
 }
 
 func (c *client) NewSnap() (*Snap, error) {
