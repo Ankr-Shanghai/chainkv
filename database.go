@@ -41,12 +41,12 @@ func NewDatabase(datadir string) (*leveldb.DB, error) {
 func NewPebble(datadir string) (*pebble.DB, error) {
 
 	var (
-		cache    uint64 = 1
-		handlers        = 128
+		cache    uint64 = 4
+		handlers        = 2048
 		// The max memtable size is limited by the uint32 offsets stored in
 		// internal/arenaskl.node, DeferredBatchOp, and flushableBatchEntry.
 		// Taken from https://github.com/cockroachdb/pebble/blob/master/open.go#L38
-		maxMemTableSize uint64 = opt.GiB // Capped by 1 GB
+		maxMemTableSize uint64 = 4 * opt.GiB // Capped by 1 GB
 		memTableLimit          = 2
 	)
 

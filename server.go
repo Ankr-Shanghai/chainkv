@@ -142,7 +142,7 @@ func (s *kvserver) OnShutdown(c gnet.Engine) {
 func (s *kvserver) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	s.log.Info("server booting ...", "addr", s.addr)
 	s.eng = eng
-	debug.SetMemoryLimit(24 * opt.GiB)
+	debug.SetMemoryLimit(48 * opt.GiB)
 	return
 }
 
